@@ -45,10 +45,10 @@ export default function EventsList() {
   );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-4xl p-6 mx-auto">
+      <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-bold">Manage Events</h2>
-        <div className="flex gap-4 items-center">
+        <div className="flex items-center gap-4">
           <div className="relative w-64">
             <Input
               type="text"
@@ -57,7 +57,7 @@ export default function EventsList() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+            <Search className="absolute w-4 h-4 text-gray-400 left-3 top-3" />
           </div>
           <Link to="/event/create">
             <Button className="gap-2">
@@ -70,17 +70,17 @@ export default function EventsList() {
 
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="w-4 h-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+          <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
         </div>
       ) : filteredEvents.length === 0 ? (
-        <p className="text-center text-gray-500 py-8">
+        <p className="py-8 text-center text-gray-500">
           {searchTerm ? "No events found matching your search." : "No events available."}
         </p>
       ) : (
@@ -89,11 +89,11 @@ export default function EventsList() {
             {paginatedEvents.map((event) => (
               <li
                 key={event.id}
-                className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                className="p-4 transition-shadow border rounded-lg shadow-sm hover:shadow-md"
               >
                 <h3 className="text-xl font-semibold">{event.name}</h3>
-                <p className="text-gray-600 mt-2">{event.description}</p>
-                <div className="mt-4 flex justify-between items-center text-sm text-gray-400">
+                <p className="mt-2 text-gray-600">{event.description}</p>
+                <div className="flex items-center justify-between mt-4 text-sm text-gray-400">
                   <p>
                     Created: {new Date(event.createdAt).toLocaleDateString()}
                   </p>
@@ -112,7 +112,7 @@ export default function EventsList() {
               >
                 Previous
               </Button>
-              <span className="py-2 px-4 text-sm">
+              <span className="px-4 py-2 text-sm">
                 Page {currentPage} of {totalPages}
               </span>
               <Button

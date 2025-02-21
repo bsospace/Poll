@@ -1,0 +1,29 @@
+{
+  "name": "vote",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
+    "start:frontend": "cd frontend && npm run dev",
+    "start:backend": "cd backend && npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bsospace/Vote.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bsospace/Vote/issues"
+  },
+  "homepage": "https://github.com/bsospace/Vote#readme",
+  "description": "",
+  "devDependencies": {
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "uuid": "^11.1.0"
+  }
+}

@@ -6,7 +6,7 @@ import { LoginPage} from '@/pages/auth/LogIn'
 import HomePage from '@/pages/Home'
 import Callback from '@/pages/auth/Callback'
 import Events from '@/pages/events/Index'
-import CreateEvent from '@/pages/events/CreateEvent'
+import CreateEvent from '@/pages/events/Create/Index'
 import PollDetails from '@/pages/PollDetails'
 
 
