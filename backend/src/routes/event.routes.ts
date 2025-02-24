@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { EventController } from '../controllers/event.controller';
 import { EventService } from '../services/event.service';
 import { PrismaClient } from '@prisma/client';
-import { getAllEventValidator, getEventByIdValidator } from '../utils/validators/event.util';
+import { createEventValidator, getAllEventValidator, getEventByIdValidator } from '../utils/validators/event.util';
 import { validateRequest } from '../middlewares/validate.middleware';
 import { PollController } from '../controllers/poll.controller';
 import { UserService } from '../services/user.service';
@@ -35,9 +35,11 @@ const authMiddleware = new AuthMiddleware(
 const eventController = new EventController(eventService);
 
 
-router.get('/', getAllEventValidator(),authMiddleware.validateMulti, validateRequest, eventController.getEvents);
+router.get('/', getAllEventValidator(), authMiddleware.validateMulti, validateRequest, eventController.getEvents);
 
-router.get('/:eventId', getEventByIdValidator(),authMiddleware.validateMulti, validateRequest, eventController.getEvent);
+router.get('/:eventId', getEventByIdValidator(), authMiddleware.validateMulti, validateRequest, eventController.getEvent);
+
+router.post('/create', createEventValidator(), authMiddleware.validateUserOnly, validateRequest, eventController.createEvent);
 
 export {
     router as eventRouters

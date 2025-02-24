@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ChevronRight, ChevronRightIcon } from "lucide-react";
 
 interface EventDetailsProps {
     name: string;
@@ -46,13 +47,14 @@ const EventDetails = (
                     </div>
 
                     <div className="flex justify-end pt-4">
+                        <ChevronRightIcon size={24} className="text-gray-500" />
                         <Button
                             type="button"
                             onClick={handleNextTab}
-                            className="w-32"
-                            disabled={!name}
+                            className="gap-2"
                         >
                             Next
+                            <ChevronRight size={16} />
                         </Button>
                     </div>
                 </CardContent>
