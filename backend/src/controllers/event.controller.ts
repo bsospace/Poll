@@ -14,11 +14,40 @@ export class EventController {
 
         this.getEvents = this.getEvents.bind(this);
         this.getEvent = this.getEvent.bind(this);
+        this.createEvent = this.createEvent.bind(this);
     }
 
-    async createEvent(req: Request, res: Response) {
-        // Create an event
+    public async createEvent(req: Request, res: Response): Promise<any> {
+        try {
+            const { name, description, whitelist, guest } = req.body;
+            const user = req.user;
+
+            if (!user) {
+                return res.status(401).json({ success: false, message: "Unauthorized" });
+            }
+
+            const newEvent = await this.eventService.createEvent(user.id, {
+                name,
+                description,
+                whitelist,
+                guest,
+            });
+
+            if (!newEvent) {
+                return res.status(500).json({ success: false, message: "Failed to create event" });
+            }
+
+            return res.status(201).json({
+                success: true,
+                message: "Event created successfully",
+                data: newEvent,
+            });
+        } catch (error) {
+            console.error("[ERROR] createEvent:", error);
+            return res.status(500).json({ message: "Something went wrong", error });
+        }
     }
+
 
     public async getEvent(req: Request, res: Response): Promise<any> {
         try {
