@@ -35,7 +35,7 @@ class AuthMiddleware {
   }
 
   /**  Validate User เท่านั้น */
-  public async validateUserOnly(req: Request, res: Response, next: NextFunction) {
+  public async validateUserOnly(req: Request, res: Response, next: NextFunction): Promise<any>  {
     try {
       const user = await this.authenticateUser(req);
       if (!user) {
