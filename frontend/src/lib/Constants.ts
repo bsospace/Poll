@@ -25,6 +25,7 @@ export const ROUTES = {
     VIEW: '/event/view',
     CREATE: '/event/create',
     EDIT: '/event/edit',
+    CREATE_POLL: '/event/:id/polls/create',
   }, 
 
   // Polls
