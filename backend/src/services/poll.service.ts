@@ -131,7 +131,7 @@ export class PollService {
                     options: true,
                     event: {
                         include: {
-                            whitelist: isGuest ? undefined : { where: { userId: userId, deletedAt: null }},
+                            whitelist: isGuest ? undefined : { where: { userId: userId, deletedAt: null } },
                             guests: isGuest ? { where: { id: userId, deletedAt: null } } : undefined,
                         },
                     },
@@ -156,19 +156,31 @@ export class PollService {
      */
     public async userCanVote(pollId: string, userId: string, isGuest: boolean): Promise<boolean> {
         try {
-            const canVote = await this.prisma.event.findFirst({
+            // Check if the poll exists and is public
+            const canVote = await this.prisma.poll.findFirst({
                 where: {
-                    polls: { some: { id: pollId, isVoteEnd: false } },
-                    ...(isGuest
-                        ? { guests: { some: { id: userId, deletedAt: null } } }
-                        : { whitelist: { some: { userId: userId, deletedAt: null } } }),
-                },
+                    id: pollId,
+                    deletedAt: null,
+                    OR: [
+                        { isPublic: true },
+                        {
+                            isPublic: false,
+                            isVoteEnd: false, 
+                            event: {
+                                ...(isGuest
+                                    ? { guests: { some: { id: userId, deletedAt: null } } }
+                                    : { whitelist: { some: { userId: userId, deletedAt: null } } }
+                                )
+                            }
+                        }
+                    ]
+                }
             });
 
-            return !!canVote;
+            return Boolean(canVote);
         } catch (error) {
             console.error("[ERROR] userCanVote:", error);
-            throw new Error("Failed to check user vote");
+            throw error; // Preserve original error details
         }
     }
 
@@ -192,10 +204,10 @@ export class PollService {
             })) ?? [],
             event: poll.event
                 ? {
-                      ...poll.event,
-                      description: poll.event.description ?? undefined,
-                      dataLogs: (poll.event.dataLogs as unknown as DataLog[] | null) ?? undefined,
-                  }
+                    ...poll.event,
+                    description: poll.event.description ?? undefined,
+                    dataLogs: (poll.event.dataLogs as unknown as DataLog[] | null) ?? undefined,
+                }
                 : undefined,
         };
     }
