@@ -2,17 +2,23 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { nanoid } from "nanoid";
 import { IGuest } from "@/interfaces/interfaces";
 import EventDetails from "./EventDetails";
 import Participants from "./Participants";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { axiosInstance } from "@/lib/Utils";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import { CheckCircle, ChevronLeft, Save } from "lucide-react";
 
 export default function CreateEvent() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [whitelistInput, setWhitelistInput] = useState("");
   const [initialWhitelistPoints, setInitialWhitelistPoints] = useState(0);
+  const navigate = useNavigate();
 
   interface WhitelistEntry {
     email: string;
@@ -28,9 +34,25 @@ export default function CreateEvent() {
   const [activeTab, setActiveTab] = useState("details");
   const [showDialog, setShowDialog] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Calculate progress based on completed steps
+  const getProgress = () => {
+    switch (activeTab) {
+      case "details":
+        return 33;
+      case "participants":
+        return 66;
+      case "summary":
+        return 100;
+      default:
+        return 33;
+    }
+  };
 
   const handleAddWhitelist = () => {
     if (!whitelistInput.trim()) {
+      toast.error("Please enter at least one email address");
       return;
     }
 
@@ -45,8 +67,7 @@ export default function CreateEvent() {
     const invalidEmails = emailList.filter(email => !emailRegex.test(email));
 
     if (invalidEmails.length > 0) {
-      setDialogMessage(`The email(s) ${invalidEmails.join(", ")} are invalid.`);
-      setShowDialog(true);
+      toast.error(`Invalid email(s): ${invalidEmails.join(", ")}`);
       return;
     }
 
@@ -56,26 +77,26 @@ export default function CreateEvent() {
       .map(email => ({ email, point: initialWhitelistPoints }));
 
     if (newEntries.length === 0) {
-      setDialogMessage("No new emails to add.");
-      setShowDialog(true);
+      toast("No new emails to add");
       return;
     }
 
     setWhitelist([...whitelist, ...newEntries]);
     setWhitelistInput(""); // Clear input after adding
-    setDialogMessage(`${newEntries.length} entries added successfully.`);
-    setShowDialog(true);
+    toast.success(`${newEntries.length} email${newEntries.length > 1 ? 's' : ''} added`);
   };
 
   const handleRemoveWhitelist = (email: string) => {
     setWhitelist(whitelist.filter((entry) => entry.email !== email));
-    setDialogMessage(`${email} has been removed from the whitelist.`);
-    setShowDialog(true);
+    toast.success(`${email} removed from whitelist`);
   };
 
   const handleGenerateGuest = () => {
-    if (guestNumber <= 0) return;
-    
+    if (guestNumber <= 0) {
+      toast.error("Please enter a valid number of guests");
+      return;
+    }
+
     const newGuests = Array.from({ length: guestNumber }, () => ({
       id: nanoid(),
       name: `GUEST-${nanoid(4).toUpperCase()}`,
@@ -86,8 +107,7 @@ export default function CreateEvent() {
     }));
 
     setGuest(newGuests);
-    setDialogMessage(`Generated ${guestNumber} guest codes successfully.`);
-    setShowDialog(true);
+    toast.success(`Generated ${guestNumber} guest code${guestNumber > 1 ? 's' : ''}`);
   };
 
   const handleUpdateWhitelistPoint = (email: string, point: number) => {
@@ -99,8 +119,7 @@ export default function CreateEvent() {
   const handleNextTab = () => {
     if (activeTab === "details") {
       if (!name.trim()) {
-        setDialogMessage("Please enter the event name.");
-        setShowDialog(true);
+        toast.error("Please enter the event name");
         return;
       }
       setActiveTab("participants");
@@ -117,7 +136,9 @@ export default function CreateEvent() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+
     const payload = {
       name,
       description,
@@ -125,29 +146,47 @@ export default function CreateEvent() {
       guest,
     };
 
-    console.log("Sending payload:", payload);
-    setDialogMessage("Event created successfully.");
-    setShowDialog(true);
-    // navigate("/events") would go here in real implementation
+    try {
+      const response = await axiosInstance.post("/events/create", payload);
+
+      if (response.status !== 201) {
+        throw new Error("Failed to create event");
+      }
+
+      toast.success("Event created successfully");
+      navigate(`/events/${response.data.data.id}`);
+    } catch (error) {
+      console.error("[ERROR] createEvent:", error);
+      setDialogMessage("Something went wrong. Please try again.");
+      setShowDialog(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-sm">
-      <h1 className="mb-6 text-3xl font-bold">Create New Event</h1>
+    <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-md">
+      <h1 className="mb-2 text-3xl font-bold">Create New Event</h1>
+      <p className="mb-6 text-gray-500">Complete all steps to create your event</p>
+
+      <Progress value={getProgress()} className="h-2 mb-6" />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="details" className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">1</span>
+          <TabsTrigger value="details" className="flex items-center gap-2" disabled={isSubmitting}>
+            <span className={`flex items-center justify-center w-6 h-6 rounded-full ${activeTab === "details" ? "bg-primary text-white" : "bg-primary/10"
+              }`}>1</span>
             Event Details
           </TabsTrigger>
-          <TabsTrigger value="participants" className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">2</span>
+          <TabsTrigger value="participants" className="flex items-center gap-2" disabled={isSubmitting}>
+            <span className={`flex items-center justify-center w-6 h-6 rounded-full ${activeTab === "participants" ? "bg-primary text-white" : "bg-primary/10"
+              }`}>2</span>
             Participants
           </TabsTrigger>
-          <TabsTrigger value="summary" className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">3</span>
-            Summary
+          <TabsTrigger value="summary" className="flex items-center gap-2" disabled={isSubmitting}>
+            <span className={`flex items-center justify-center w-6 h-6 rounded-full ${activeTab === "summary" ? "bg-primary text-white" : "bg-primary/10"
+              }`}>3</span>
+            Review & Create
           </TabsTrigger>
         </TabsList>
 
@@ -163,28 +202,28 @@ export default function CreateEvent() {
           </TabsContent>
 
           <TabsContent value="participants" className="mt-0">
-            <Participants
-              whitelist={whitelist}
-              setWhitelistInput={setWhitelistInput}
-              initialWhitelistPoints={initialWhitelistPoints}
-              setInitialWhitelistPoints={setInitialWhitelistPoints}
-              handleUpdateWhitelistPoint={handleUpdateWhitelistPoint}
-              guest={guest}
-              setGuest={setGuest}
-              guestNumber={guestNumber}
-              setGuestNumber={setGuestNumber}
-              guestPoint={guestPoint}
-              setGuestPoint={setGuestPoint}
-              handleAddWhitelist={handleAddWhitelist}
-              handleRemoveWhitelist={handleRemoveWhitelist}
-              handleGenerateGuest={handleGenerateGuest}
-              handleNextTab={handleNextTab}
-              handlePrevTab={handlePrevTab}
-            />
+                <Participants
+                  whitelist={whitelist}
+                  setWhitelistInput={setWhitelistInput}
+                  initialWhitelistPoints={initialWhitelistPoints}
+                  setInitialWhitelistPoints={setInitialWhitelistPoints}
+                  handleUpdateWhitelistPoint={handleUpdateWhitelistPoint}
+                  guest={guest}
+                  setGuest={setGuest}
+                  guestNumber={guestNumber}
+                  setGuestNumber={setGuestNumber}
+                  guestPoint={guestPoint}
+                  setGuestPoint={setGuestPoint}
+                  handleAddWhitelist={handleAddWhitelist}
+                  handleRemoveWhitelist={handleRemoveWhitelist}
+                  handleGenerateGuest={handleGenerateGuest}
+                  handleNextTab={handleNextTab}
+                  handlePrevTab={handlePrevTab}
+                />
           </TabsContent>
 
           <TabsContent value="summary" className="mt-0">
-            <Card>
+            <Card className="border shadow-sm">
               <CardHeader>
                 <CardTitle>Event Summary</CardTitle>
                 <CardDescription>Review your event details before creating</CardDescription>
@@ -193,7 +232,7 @@ export default function CreateEvent() {
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div>
                     <h3 className="mb-3 text-lg font-medium">Event Details</h3>
-                    <Card className="border bg-gray-50">
+                    <Card className="border bg-gray-50/50">
                       <CardContent className="p-4">
                         <div className="py-2 space-y-4">
                           <div>
@@ -211,16 +250,22 @@ export default function CreateEvent() {
 
                   <div>
                     <h3 className="mb-3 text-lg font-medium">Participants Information</h3>
-                    <Card className="border bg-gray-50">
+                    <Card className="border bg-gray-50/50">
                       <CardContent className="p-4">
                         <div className="py-2 space-y-4">
-                          <div>
-                            <p className="text-sm text-gray-500">Registered Participants:</p>
-                            <p className="font-medium">{whitelist.length} people</p>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle size={16} className={whitelist.length > 0 ? "text-green-500" : "text-gray-300"} />
+                            <div>
+                              <p className="text-sm text-gray-500">Registered Participants:</p>
+                              <p className="font-medium">{whitelist.length} people</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-500">Guest Codes Generated:</p>
-                            <p className="font-medium">{guest && guest.length > 0 ? `Generated (${guest.length} codes)` : "Not generated yet"}</p>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle size={16} className={guest && guest.length > 0 ? "text-green-500" : "text-gray-300"} />
+                            <div>
+                              <p className="text-sm text-gray-500">Guest Codes:</p>
+                              <p className="font-medium">{guest && guest.length > 0 ? `${guest.length} codes generated` : "Not generated yet"}</p>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -233,16 +278,18 @@ export default function CreateEvent() {
                     type="button"
                     variant="outline"
                     onClick={handlePrevTab}
-                    className="w-32"
+                    className="gap-2"
+                    disabled={isSubmitting}
                   >
-                    Back
+                    <ChevronLeft size={16} /> Back
                   </Button>
                   <Button
                     type="button"
                     onClick={handleSubmit}
-                    className="w-32"
+                    className="gap-2"
+                    disabled={isSubmitting}
                   >
-                    Create Event
+                    {isSubmitting ? "Creating..." : "Create Event"} <Save size={16} />
                   </Button>
                 </div>
               </CardContent>
