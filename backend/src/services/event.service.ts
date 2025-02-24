@@ -88,4 +88,62 @@ export class EventService {
             return null;
         }
     }
+
+    public async createEvent(userId: string, eventData: {
+        name: string;
+        description?: string;
+        whitelist?: { email: string; point: number }[];
+        guest?: { id: string; name: string; key: string; point: number }[];
+    }): Promise<IEvent | null> {
+        try {
+            const { name, description, whitelist = [], guest = [] } = eventData;
+    
+            const newEvent = await this.prisma.event.create({
+                data: {
+                    name,
+                    description,
+                    owner: { connect: { id: userId } },
+                    whitelist: {
+                        create: whitelist.map(user => ({
+                            point: user.point, // Keep the point field
+                            user: {
+                                connectOrCreate: {
+                                    where: { email: user.email }, // Check if user exists
+                                    create: { email: user.email, firstName: "", lastName: "" } // Create new user if not found
+                                }
+                            }
+                        })),
+                    },
+                    guests: {
+                        create: guest.map(g => ({
+                            name: g.name,
+                            key: g.key,
+                            point: g.point,
+                        })),
+                    },
+                },
+                include: {
+                    whitelist: {
+                        include: { user: true }, // Ensure user data is returned
+                    },
+                    guests: true,
+                },
+            });
+    
+            return {
+                ...newEvent,
+                description: newEvent.description ?? undefined,
+                whitelist: newEvent.whitelist.map(w => ({
+                    ...w,
+                    user: {
+                        ...w.user,
+                        avatar: w.user.avatar ?? undefined,
+                    },
+                })),
+            };
+        } catch (error) {
+            console.error("[ERROR] createEvent:", error);
+            return null;
+        }
+    }    
 }
