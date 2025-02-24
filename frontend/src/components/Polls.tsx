@@ -1,4 +1,4 @@
-import { IPoll } from "@/interfaces/Interfaces";
+import { IPoll } from "@/interfaces/interfaces";
 import { DateFormatFull, DateFormatFullTime } from "@/lib/DateFormat";
 import { useAuth } from "@/hooks/UseAuth";
 import { Link } from "react-router-dom";

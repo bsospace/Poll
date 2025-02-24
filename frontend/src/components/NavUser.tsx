@@ -17,7 +17,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IUser } from "@/interfaces/Interfaces";
+import { IUser } from "@/interfaces/interfaces";
 
 interface NavUserProps {
     user: IUser;
