@@ -87,17 +87,19 @@ export default function EventsList() {
         <>
           <ul className="space-y-4">
             {paginatedEvents.map((event) => (
-              <li
-                key={event.id}
-                className="p-4 transition-shadow border rounded-lg shadow-sm hover:shadow-md"
-              >
-                <h3 className="text-xl font-semibold">{event.name}</h3>
-                <p className="mt-2 text-gray-600">{event.description}</p>
-                <div className="flex items-center justify-between mt-4 text-sm text-gray-400">
-                  <p>
-                    Created: {new Date(event.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+              <li key={event.id}>
+                <Link
+                  to={`/event/${event.id}`} // คลิกที่การ์ดเพื่อไปยัง EventView
+                  className="p-4 transition-shadow border rounded-lg shadow-sm hover:shadow-md block"
+                >
+                  <h3 className="text-xl font-semibold">{event.name}</h3>
+                  <p className="mt-2 text-gray-600">{event.description}</p>
+                  <div className="flex items-center justify-between mt-4 text-sm text-gray-400">
+                    <p>
+                      Created: {new Date(event.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

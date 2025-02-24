@@ -22,7 +22,7 @@ export const ROUTES = {
   // Events
   EVENT: {
     BASE: '/events',      
-    VIEW: '/event/view',
+    VIEW: '/event/:id',
     CREATE: '/event/create',
     EDIT: '/event/edit',
     CREATE_POLL: '/event/:id/polls/create',
