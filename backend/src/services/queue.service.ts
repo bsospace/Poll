@@ -31,7 +31,7 @@ class QueueService {
         this.initializeWorker();
     }
 
-    public async addVoteToQueue(voteData: { pollId: string; userId: string; optionId: string; points: number, isGuest: boolean }) {
+    public async addVoteToQueue(voteData: { pollId: string; userId: string; optionId: string; points: number, isGuest: boolean, isPublic: boolean }) {
         console.log("[DEBUG] Adding vote to queue:", voteData);
         await this.voteQueue.add("new-vote", voteData, {
             jobId: `vote:${voteData.pollId}:${voteData.userId}`,
@@ -50,37 +50,34 @@ class QueueService {
                 try {
                     console.log("[DEBUG] Checking if job can be processed...");
 
-                    const { pollId, userId, optionId, points, isGuest } = job.data;
+                    const { pollId, userId, optionId, points, isGuest, isPublic } = job.data;
                     const userVoteKey = `vote:${pollId}:${userId}`;
 
-                    if(isGuest){
-                        const guest = await this.prisma.guest.findUnique({
-                            where: { id: userId },
-                            select: { point: true },
-                        });
+                    // Fetch poll details
+                    const poll = await this.prisma.poll.findUnique({ where: { id: pollId } });
+                    if (!poll) throw new Error(`Poll ID ${pollId} not found or deleted.`);
 
-                        console.log(`[DEBUG] Guest:`, guest);
-                        if (!guest) throw new Error(`Guest ID ${userId} not found or deleted.`);
-                        if (guest.point < points) throw new Error(`Guest ${userId} does not have enough points.`);
+                    // Guests cannot vote in public polls
+                    if (isGuest && isPublic) {
+                        throw new Error(`Guest users are not allowed to vote in public polls.`);
                     }
 
-                    if (!isGuest) {
-                        const whitelistUser = await this.prisma.whitelistUser.findFirst({
-                            where: { userId },
-                            include: { user: true },
+                    // Ensure user hasn't already voted in a public poll (One-time vote rule)
+                    if (isPublic) {
+                        const existingVote = await this.prisma.vote.findFirst({
+                            where: { pollId, userId },
                         });
 
-                        console.log(`[DEBUG] Whitelist user:`, whitelistUser);
-                        if (!whitelistUser) throw new Error(`User ID ${userId} not found or deleted.`);
-                        if (whitelistUser.point < points) throw new Error(`User ${userId} does not have enough points.`);
+                        console.log(`[DEBUG] Existing vote:`, existingVote);
+
+                        if (existingVote) {
+                            throw new Error(`User ${userId} has already voted in this public poll.`);
+                        }
                     }
 
                     console.log(`[DEBUG] Processing vote for ${userId} on poll ${pollId}`);
 
                     const result = await this.prisma.$transaction(async (tx) => {
-
-                        const poll = await tx.poll.findUnique({ where: { id: pollId } });
-                        if (!poll) throw new Error(`Poll ID ${pollId} not found or deleted.`);
 
                         console.log(`[DEBUG] Creating vote record`);
                         const vote = await tx.vote.create({
@@ -95,16 +92,37 @@ class QueueService {
 
                         console.log(`[DEBUG] Updating poll option ${optionId} with ${points} points`);
 
-                        if (isGuest) {
-                            await tx.guest.updateMany({
-                                where: { id: userId },
-                                data: { point: { decrement: points } },
-                            });
-                        } else {
-                            await tx.whitelistUser.updateMany({
-                                where: { userId: userId },
-                                data: { point: { decrement: points } },
-                            });
+                        if (!isPublic) {
+                            // Deduct points only for non-public polls
+                            if (isGuest) {
+                                const guest = await tx.guest.findUnique({
+                                    where: { id: userId },
+                                    select: { point: true },
+                                });
+
+                                console.log(`[DEBUG] Guest:`, guest);
+                                if (!guest) throw new Error(`Guest ID ${userId} not found or deleted.`);
+                                if (guest.point < points) throw new Error(`Guest ${userId} does not have enough points.`);
+
+                                await tx.guest.updateMany({
+                                    where: { id: userId },
+                                    data: { point: { decrement: points } },
+                                });
+                            } else {
+                                const whitelistUser = await tx.whitelistUser.findFirst({
+                                    where: { userId },
+                                    include: { user: true },
+                                });
+
+                                console.log(`[DEBUG] Whitelist user:`, whitelistUser);
+                                if (!whitelistUser) throw new Error(`User ID ${userId} not found or deleted.`);
+                                if (whitelistUser.point < points) throw new Error(`User ${userId} does not have enough points.`);
+
+                                await tx.whitelistUser.updateMany({
+                                    where: { userId: userId },
+                                    data: { point: { decrement: points } },
+                                });
+                            }
                         }
 
                         return vote;
