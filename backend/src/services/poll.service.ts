@@ -164,7 +164,7 @@ export class PollService {
                         },
                     },
                     votes: {
-                        where: { userId: userId, deletedAt: null },
+                        where: isGuest ? { guestId: userId, deletedAt: null } : { userId: userId, deletedAt: null },
                     },
                 },
             });
@@ -174,15 +174,12 @@ export class PollService {
                 return null;
             }
 
-            // return user voted results
-            return poll.options.map(option => {
-                const votes = poll.votes.filter(vote => vote.optionId === option.id);
-                return {
-                    optionId: option.id,
-                    optionName: option.text,
-                    votes: votes.length,
-                };
-            })
+            return poll.votes.map(vote => ({
+                optionId: vote.optionId,
+                userId: isGuest ? vote.guestId : vote.userId,
+                point: vote.point,
+            }));
+
         } catch (error) {
             console.error("[ERROR] getUserVotedResults:", error);
             throw new Error("Failed to fetch poll");
@@ -220,7 +217,7 @@ export class PollService {
                 point = whitelist?.point ?? 0;
             }
 
-            if(poll.isPublic) {
+            if (poll.isPublic) {
                 point = 1;
             }
 
@@ -323,87 +320,87 @@ export class PollService {
     }
 
     public async createPollByEventId(
-      polls: IPoll[],
-      eventId: string,
-      userId: string
+        polls: IPoll[],
+        eventId: string,
+        userId: string
     ): Promise<any> {
-      try {
-        return await this.prisma.$transaction(async (prisma) => { 
-          // Step 1: Create Polls
-          const createdPolls = await prisma.poll.createMany({
-            data: polls.map((poll) => ({
-              eventId: eventId,
-              userId: userId,
-              question: poll.question,
-              description: poll.description,
-              isPublic: eventId != null ? false : poll.isPublic,
-              canEdit: poll.canEdit,
-              isVoteEnd: false, // Default vote end status
-              banner: poll.banner,
-              publishedAt: poll.publishedAt ? new Date(poll.publishedAt) : null,
-              startVoteAt: new Date(poll.startVoteAt),
-              endVoteAt: new Date(poll.endVoteAt),
-            })),
-          });
-  
-          // Step 2: Fetch created polls to get their IDs
-          const createdPollsData = await prisma.poll.findMany({
-            where: { eventId: eventId, userId: userId },
-          });
-  
-          // Step 3: Add options and vote restrictions using Promise.all
-          await Promise.all(
-            polls.map(async (poll) => {
-              const relatedPoll = createdPollsData.find(
-                (p) => p.question === poll.question
-              );
-  
-              if (!relatedPoll) {
-                throw new Error(`Poll not found for question: ${poll.question}`);
-              }
-  
-              // Create options
-              const createdOptions = await prisma.option.createMany({
-                data: (poll.options || []).map((option) => ({
-                  pollId: relatedPoll.id,
-                  text: option.text,
-                  banner: option.banner,
-                  description: option.description,
-                })),
-              });
-  
-              // Step 4: Add vote restrictions
-              await Promise.all(
-                (poll.voteRestrict || []).map(async (restriction) => {
-                  const option = await prisma.option.findFirst({
-                    where: {
-                      pollId: relatedPoll.id,
-                      text: restriction.option?.text, // Ensure option text matches
-                    },
-                  });
-  
-                  if (option) {
-                    await prisma.voteRestriction.create({
-                      data: {
-                        pollId: relatedPoll.id,
-                        optionId: option.id,
-                        userId: restriction?.userId || null,
-                        guestId: restriction?.guestId || null,
-                      },
-                    });
-                  }
-                })
-              );
-            })
-          );
-  
-          return createdPolls;
-        });
-      } catch (error) {
-        console.error("Error creating polls:", error);
-        throw new Error(
-          `Failed to create polls for event ${eventId}: ${error}`
-        );
-      }
+        try {
+            return await this.prisma.$transaction(async (prisma) => {
+                // Step 1: Create Polls
+                const createdPolls = await prisma.poll.createMany({
+                    data: polls.map((poll) => ({
+                        eventId: eventId,
+                        userId: userId,
+                        question: poll.question,
+                        description: poll.description,
+                        isPublic: eventId != null ? false : poll.isPublic,
+                        canEdit: poll.canEdit,
+                        isVoteEnd: false, // Default vote end status
+                        banner: poll.banner,
+                        publishedAt: poll.publishedAt ? new Date(poll.publishedAt) : null,
+                        startVoteAt: new Date(poll.startVoteAt),
+                        endVoteAt: new Date(poll.endVoteAt),
+                    })),
+                });
+
+                // Step 2: Fetch created polls to get their IDs
+                const createdPollsData = await prisma.poll.findMany({
+                    where: { eventId: eventId, userId: userId },
+                });
+
+                // Step 3: Add options and vote restrictions using Promise.all
+                await Promise.all(
+                    polls.map(async (poll) => {
+                        const relatedPoll = createdPollsData.find(
+                            (p) => p.question === poll.question
+                        );
+
+                        if (!relatedPoll) {
+                            throw new Error(`Poll not found for question: ${poll.question}`);
+                        }
+
+                        // Create options
+                        const createdOptions = await prisma.option.createMany({
+                            data: (poll.options || []).map((option) => ({
+                                pollId: relatedPoll.id,
+                                text: option.text,
+                                banner: option.banner,
+                                description: option.description,
+                            })),
+                        });
+
+                        // Step 4: Add vote restrictions
+                        await Promise.all(
+                            (poll.voteRestrict || []).map(async (restriction) => {
+                                const option = await prisma.option.findFirst({
+                                    where: {
+                                        pollId: relatedPoll.id,
+                                        text: restriction.option?.text, // Ensure option text matches
+                                    },
+                                });
+
+                                if (option) {
+                                    await prisma.voteRestriction.create({
+                                        data: {
+                                            pollId: relatedPoll.id,
+                                            optionId: option.id,
+                                            userId: restriction?.userId || null,
+                                            guestId: restriction?.guestId || null,
+                                        },
+                                    });
+                                }
+                            })
+                        );
+                    })
+                );
+
+                return createdPolls;
+            });
+        } catch (error) {
+            console.error("Error creating polls:", error);
+            throw new Error(
+                `Failed to create polls for event ${eventId}: ${error}`
+            );
+        }
     }
 }
