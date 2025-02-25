@@ -336,7 +336,7 @@ export class PollService {
               userId: userId,
               question: poll.question,
               description: poll.description,
-              isPublic: eventId == null ? false : poll.isPublic,
+              isPublic: eventId != null ? false : poll.isPublic,
               canEdit: poll.canEdit,
               isVoteEnd: false, // Default vote end status
               banner: poll.banner,
