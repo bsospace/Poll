@@ -43,7 +43,6 @@ export interface IPoll {
   event: IEvent;
   showResult: boolean;
   dataLogs?: any;
-  options?: IOption[];
 }
 
 export interface IOption {
@@ -55,6 +54,7 @@ export interface IOption {
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
+  votes: IVote[];
   dataLogs?: any;
 }
 
