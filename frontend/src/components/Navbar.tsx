@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
-import { Vote, LogOut, LogIn } from "lucide-react";
+import { Vote } from "lucide-react";
 import { useAuth } from "@/hooks/UseAuth";
 import { NavUser } from "./NavUser";
-import { IUser } from "@/interfaces/interfaces";
 import { config } from "@/config/Config";
 
 export default function Navbar() {

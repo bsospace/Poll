@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import FlipCard from "@/components/animata/card/flip-card";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Key, Scan, LogIn, Shield, Vote } from "lucide-react";
+import { Scan, LogIn, Shield, Vote } from "lucide-react";
 import { useAuth } from "@/hooks/UseAuth";
 import { FaDiscord, FaGithub, FaGoogle } from "react-icons/fa";
 import QRScanner from "@/components/qrcode/QrcodeScanner";
+import { config } from "@/config/Config";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -41,7 +42,14 @@ export function LoginPage() {
     loginGuest(accessKey, "/");
   };
 
-  const OAuthButton = ({ provider, icon: Icon, color, hoverColor }: any) => (
+  interface OAuthButtonProps {
+    provider: "discord" | "github" | "google";
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    hoverColor: string;
+  }
+
+  const OAuthButton = ({ provider, icon: Icon, color, hoverColor }: OAuthButtonProps) => (
     <Button
       className={`w-full rounded-xl py-6 flex items-center justify-center space-x-3 ${color} ${hoverColor} text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}
       onClick={() => oauthLogin(provider)}
@@ -58,8 +66,8 @@ export function LoginPage() {
       <div className="absolute w-64 h-64 rounded-full bg-gradient-to-r from-orange-400 to-red-300 blur-3xl opacity-40 -top-20 -left-20 animate-pulse"></div>
       <div className="absolute w-80 h-80 rounded-full bg-gradient-to-r from-yellow-300 to-orange-200 blur-3xl opacity-40 -bottom-32 -right-20 animate-pulse" style={{ animationDelay: "1.5s" }}></div>
 
-      <div className="w-full max-w-md relative z-10">
-        <Card className="border-none shadow-2xl rounded-3xl bg-white/90 backdrop-blur-xl p-10 border border-white/20">
+      <div className="w-full max-w-md z-10">
+        <Card className="w-full h-full md:h-fit md:w-fit border-none shadow-none md:shadow-2xl md:rounded-3xl bg-transparent md:bg-white/90 md:backdrop-blur-xl p-10 border md:border-white/20">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
@@ -69,8 +77,8 @@ export function LoginPage() {
                 </div>
               </div>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-700 to-red-600 bg-clip-text text-transparent">Welcome</h1>
-            <p className="text-gray-600 mt-2 font-medium">vote.bsospace.com</p>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-700 to-red-600 bg-clip-text text-transparent">Welcome to</h1>
+            <p className="text-gray-600 mt-2 font-medium">{config.appName}</p>
           </div>
 
           {/* Tab Switcher */}
@@ -114,14 +122,14 @@ export function LoginPage() {
                   />
                   <Label htmlFor="terms" className="text-sm text-orange-800">
                     I accept the{" "}
-                    <a href="#" className="text-orange-600 hover:underline font-medium">Terms of Service</a> and{" "}
-                    <a href="#" className="text-orange-600 hover:underline font-medium">Privacy Policy</a>
+                    <button className="text-orange-600 hover:underline font-medium">Terms of Service</button> and{" "}
+                    <button className="text-orange-600 hover:underline font-medium">Privacy Policy</button>
                   </Label>
                 </div>
               </div>
             }
             backContent={
-              <div className="space-y-7">
+              <div className="space-y-6">
 
                 {/* Guest Access Header */}
                 <div className="flex flex-col items-center space-y-5">
@@ -155,7 +163,7 @@ export function LoginPage() {
                         <span className="font-medium">Scan QR</span>
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="rounded-3xl border-none shadow-2xl bg-white/95 backdrop-blur-xl p-6">
+                    <AlertDialogContent className="w-full h-full md:h-fit md:w-fit md:rounded-3xl border-none shadow-2xl bg-white/95 backdrop-blur-xl p-6">
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-2xl font-bold text-center text-orange-600">
                           Scan QR Code
