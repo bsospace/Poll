@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 import { IGuest } from "@/interfaces/interfaces";
 import EventDetails from "./EventDetails";
 import Participants from "./Participants";
@@ -91,6 +91,9 @@ export default function CreateEvent() {
     toast.success(`${email} removed from whitelist`);
   };
 
+
+  const nanoidAlphaNum = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", 8);
+
   const handleGenerateGuest = () => {
     if (guestNumber <= 0) {
       toast.error("Please enter a valid number of guests");
@@ -98,9 +101,9 @@ export default function CreateEvent() {
     }
 
     const newGuests = Array.from({ length: guestNumber }, () => ({
-      id: nanoid(),
-      name: `GUEST-${nanoid(4).toUpperCase()}`,
-      key: nanoid(8).toUpperCase(),
+      id: nanoidAlphaNum(21),
+      name: `GUEST-${nanoidAlphaNum(4)}`,
+      key: nanoidAlphaNum(8),
       point: guestPoint,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -202,24 +205,24 @@ export default function CreateEvent() {
           </TabsContent>
 
           <TabsContent value="participants" className="mt-0">
-                <Participants
-                  whitelist={whitelist}
-                  setWhitelistInput={setWhitelistInput}
-                  initialWhitelistPoints={initialWhitelistPoints}
-                  setInitialWhitelistPoints={setInitialWhitelistPoints}
-                  handleUpdateWhitelistPoint={handleUpdateWhitelistPoint}
-                  guest={guest}
-                  setGuest={setGuest}
-                  guestNumber={guestNumber}
-                  setGuestNumber={setGuestNumber}
-                  guestPoint={guestPoint}
-                  setGuestPoint={setGuestPoint}
-                  handleAddWhitelist={handleAddWhitelist}
-                  handleRemoveWhitelist={handleRemoveWhitelist}
-                  handleGenerateGuest={handleGenerateGuest}
-                  handleNextTab={handleNextTab}
-                  handlePrevTab={handlePrevTab}
-                />
+            <Participants
+              whitelist={whitelist}
+              setWhitelistInput={setWhitelistInput}
+              initialWhitelistPoints={initialWhitelistPoints}
+              setInitialWhitelistPoints={setInitialWhitelistPoints}
+              handleUpdateWhitelistPoint={handleUpdateWhitelistPoint}
+              guest={guest}
+              setGuest={setGuest}
+              guestNumber={guestNumber}
+              setGuestNumber={setGuestNumber}
+              guestPoint={guestPoint}
+              setGuestPoint={setGuestPoint}
+              handleAddWhitelist={handleAddWhitelist}
+              handleRemoveWhitelist={handleRemoveWhitelist}
+              handleGenerateGuest={handleGenerateGuest}
+              handleNextTab={handleNextTab}
+              handlePrevTab={handlePrevTab}
+            />
           </TabsContent>
 
           <TabsContent value="summary" className="mt-0">
