@@ -62,7 +62,13 @@ export class EventService {
             const event = await this.prisma.event.findFirst({
                 where: { id: eventId, deletedAt: null, userId },
                 include: {
-                    polls: true,
+                    polls: {
+                        include: { options: true },
+                    },
+                    whitelist: {
+                        include: { user: true }
+                    },
+                    guests: true,
                 },
             });
 
@@ -79,6 +85,18 @@ export class EventService {
                     ...poll,
                     description: poll.description ?? undefined,
                     banner: poll.banner ?? undefined,
+                    options: poll.options.map(option => ({
+                        ...option,
+                        banner: option.banner ?? undefined,
+                        description: option.description ?? undefined,
+                    })),
+                })),
+                whitelist: event.whitelist.map(w => ({
+                    ...w,
+                    user: {
+                        ...w.user,
+                        avatar: w.user.avatar ?? undefined,
+                    },
                 })),
             };
 
