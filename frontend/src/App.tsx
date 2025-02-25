@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./hooks/UseAuth";
 import { AppRoutes } from "./routes/Index";
 import { Toaster } from "@/components/ui/sonner";
