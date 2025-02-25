@@ -37,7 +37,7 @@ export default function EventView() {
     };
 
     return (
-        <div className="max-w-4xl p-6 mx-auto">
+        <div className="max-w-4xl md:p-6 mx-auto">
             <div className="flex items-center mb-6">
                 <Link to="/events" className="flex items-center text-gray-600 hover:text-orange-500">
                     <ArrowLeft className="w-4 h-4 mr-2" />
