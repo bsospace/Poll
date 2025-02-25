@@ -12,23 +12,23 @@ import { ArrowLeft } from "lucide-react";
 
 const PollDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // ใช้สำหรับย้อนกลับ
+  const navigate = useNavigate();
   const { user } = useAuth();
+  
   const [poll, setPoll] = useState<IPoll | null>(null);
   const [searchParams] = useSearchParams();
   const [selectedOption, setSelectedOption] = useState<string | null>(
     searchParams.get("selected") || null
   );
-
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false);
-  const [userPoint, setUserPoint] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [votingPoint, setVotingPoint] = useState<number>(1);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [votingPoint, setVotingPoint] = useState<number>(1);
   const [totalVotes, setTotalVotes] = useState<number>(0);
   const [optionVoteCounts, setOptionVoteCounts] = useState<Record<string, number>>({});
   const [userHasVoted, setUserHasVoted] = useState<boolean>(false);
   const [pollParticipantCount, setPollParticipantCount] = useState<number>(0);
+  const [remainingPoints, setRemainingPoints] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [userVotedResults, setUserVotedResults] = useState<
     { optionId: string; optionName: string; votes: number }[]
@@ -36,7 +36,6 @@ const PollDetails = () => {
 
   useEffect(() => {
     fetchPollData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchPollData = async () => {
@@ -47,11 +46,7 @@ const PollDetails = () => {
       setPoll(pollData);
       setUserVotedResults(response.data.data.userVotedResults);
       setPollParticipantCount(response.data.data.pollParticipantCount);
-
-      const userWhitelist = pollData.event.whitelist.find(
-        (item: { userId: string }) => item.userId === user?.id
-      );
-      setUserPoint(userWhitelist?.point || 0);
+      setRemainingPoints(response.data.data.remainingPoints);
 
       const voteCounts: Record<string, number> = {};
       let total = 0;
@@ -67,7 +62,6 @@ const PollDetails = () => {
 
       setTotalVotes(total);
       setOptionVoteCounts(voteCounts);
-
       setUserHasVoted(
         response.data.data.userVotedResults.some((res: { votes: number }) => res.votes > 0)
       );
@@ -80,7 +74,10 @@ const PollDetails = () => {
   };
 
   const handleVote = async () => {
-    if (!selectedOption || !user || votingPoint < 1) return;
+    if (!selectedOption || !user || votingPoint < 1) {
+      toast.error("Invalid vote selection.");
+      return;
+    }
 
     try {
       await axiosInstance.post(`/polls/${id}/vote`, {
@@ -94,13 +91,6 @@ const PollDetails = () => {
       setIsConfirmDialogOpen(false);
       setUserHasVoted(true);
 
-      setOptionVoteCounts((prev) => ({
-        ...prev,
-        [selectedOption]: (prev[selectedOption] || 0) + votingPoint,
-      }));
-      setTotalVotes((prev) => prev + votingPoint);
-      setUserPoint((prev) => prev - votingPoint);
-
       fetchPollData();
     } catch (error) {
       console.error(error);
@@ -108,14 +98,23 @@ const PollDetails = () => {
     }
   };
 
-  const isActive = !!(
-    poll &&
-    new Date() >= new Date(poll.startVoteAt) &&
-    new Date() <= new Date(poll.endVoteAt)
-  );
+  const now = new Date().toISOString();
+  const isActive = poll ? now >= new Date(poll.startVoteAt).toISOString() && now <= new Date(poll.endVoteAt).toISOString() : false;
 
   const openVoteDialog = (optionId: string) => {
-    if (!isActive || userPoint <= 0 || userHasVoted) return;
+    if (!isActive) {
+      toast.error("Voting is not open at this time.");
+      return;
+    }
+    if (remainingPoints <= 0) {
+      toast.error("You have no voting points left.");
+      return;
+    }
+    if (userHasVoted) {
+      toast.error("You have already voted.");
+      return;
+    }
+
     setSelectedOption(optionId);
     setVotingPoint(1);
     setIsVoteDialogOpen(true);
@@ -141,7 +140,6 @@ const PollDetails = () => {
 
   return (
     <div className="max-w-4xl mx-auto md:py-8 md:px-4">
-      {/* ปุ่มกลับ */}
       <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 px-4 py-2 mb-4 text-sm font-medium text-gray-700 transition bg-gray-100 rounded-lg hover:bg-gray-200"
@@ -150,8 +148,7 @@ const PollDetails = () => {
         กลับ
       </button>
 
-      {/* Poll Info */}
-      <PollInfo poll={poll} pollParticipantCount={pollParticipantCount} userPoint={userPoint} />
+      <PollInfo poll={poll} pollParticipantCount={pollParticipantCount} userPoint={remainingPoints} />
 
       <PollOptions
         pollOptions={poll.options}
@@ -160,31 +157,31 @@ const PollDetails = () => {
         userVotedOption={userVotedResults}
         isActive={isActive}
         userHasVoted={userHasVoted}
-        userPoint={userPoint}
+        userPoint={remainingPoints}
         showResult={poll.showResult}
         openVoteDialog={openVoteDialog}
       />
 
-      {/* Voting Dialog */}
       <VoteSheet
         isVoteDialogOpen={isVoteDialogOpen}
         setIsVoteDialogOpen={setIsVoteDialogOpen}
         selectedOption={poll?.options?.find((opt) => opt.id === selectedOption)}
         poll={poll}
-        userPoint={userPoint}
+        userPoint={remainingPoints}
         votingPoint={votingPoint}
         setVotingPoint={setVotingPoint}
         openConfirmDialog={() => setIsConfirmDialogOpen(true)}
         userHasVoted={userHasVoted}
       />
 
-      {/* Confirm Vote Dialog */}
       <ConfirmVoteDialog
+        poll={poll}
+        remainingPoints={remainingPoints}
         isConfirmDialogOpen={isConfirmDialogOpen}
         setIsConfirmDialogOpen={setIsConfirmDialogOpen}
         selectedOption={poll?.options?.find((opt) => opt.id === selectedOption)}
         votingPoint={votingPoint}
-        userPoint={userPoint}
+        userPoint={remainingPoints}
         handleVote={handleVote}
       />
     </div>
