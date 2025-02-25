@@ -52,6 +52,7 @@ export interface IOption {
   updatedAt: Date;
   deletedAt?: Date;
   dataLogs?: any;
+  restricts?: string;
 }
 
 export interface IWhitelistUser {
