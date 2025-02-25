@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface IUser {
   id: string;
   firstName: string;
@@ -28,6 +29,7 @@ export interface IPoll {
   userId: string;
   question: string;
   description?: string;
+  options: IOption[];
   isPublic: boolean;
   canEdit: boolean;
   startVoteAt: Date;
@@ -38,6 +40,8 @@ export interface IPoll {
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
+  event: IEvent;
+  showResult: boolean;
   dataLogs?: any;
   options?: IOption[];
 }
