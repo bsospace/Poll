@@ -2,6 +2,9 @@ import { IPoll } from "../interface";
 import { PollService } from "../services/poll.service";
 
 import { Request, Response, NextFunction } from "express";
+import { uploadToCloudflare } from "../utils/uploadImage.util";
+import path from "path";
+import fs from "fs";
 
 export class PollController {
   constructor(private pollService: PollService) {
@@ -222,9 +225,18 @@ export class PollController {
         });
       }
 
-      const userVotedResults = await this.pollService.getUserVotedResults(pollId, user.id, user.guest);
-      const pollParticipantCount = await this.pollService.getPollPaticipantCount(pollId);
-      const getRemainingPoints = await this.pollService.getRemainingPoints(pollId, user.id, user.guest);
+      const userVotedResults = await this.pollService.getUserVotedResults(
+        pollId,
+        user.id,
+        user.guest
+      );
+      const pollParticipantCount =
+        await this.pollService.getPollPaticipantCount(pollId);
+      const getRemainingPoints = await this.pollService.getRemainingPoints(
+        pollId,
+        user.id,
+        user.guest
+      );
 
       res.status(200).json({
         message: "Polls fetched successfully",
@@ -232,8 +244,8 @@ export class PollController {
           poll: polls,
           userVotedResults,
           pollParticipantCount,
-          remainingPoints: getRemainingPoints
-        }
+          remainingPoints: getRemainingPoints,
+        },
       });
     } catch (error) {
       next(error);
@@ -254,22 +266,62 @@ export class PollController {
           success: false,
           message: "Unauthorized",
         });
-      }      
+      }
 
-      const createdPolls = await this.pollService.createPollByEventId(polls, eventId , user.id);
+      const createdPolls = await this.pollService.createPollByEventId(
+        polls,
+        eventId,
+        user.id
+      );
 
       return res.status(200).json({
         success: true,
         message: "Event fetched successfully",
         data: createdPolls,
       });
-
-
     } catch (error) {
       console.error("[ERROR] getEvents:", error);
       return res.status(500).json({
         message: "Something went wrong",
         error: error || error,
+      });
+    }
+  }
+
+  public async uploadFile(req: Request, res: Response): Promise<any> {
+    try {
+      // ตรวจสอบว่าไฟล์ถูกส่งมาหรือไม่
+      if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+      
+      // อัปโหลดไฟล์ไปยัง folder 'uploads' โดยใช้ Multer
+      const files = req.files as Express.Multer.File[];
+      
+      for (const file of files) {
+        const filePath = path.resolve(__dirname, "../../uploads", file.originalname);
+        console.log(filePath);
+        
+
+        // ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่
+        if (fs.existsSync(filePath)) {
+          // ทำการอ่านไฟล์
+          const fileData = fs.readFileSync(filePath);
+          // หรือการใช้งานอื่นๆ เช่น อัปโหลดไฟล์ไปยัง Cloudflare
+          await uploadToCloudflare(filePath, file.originalname);
+        } else {
+          return res
+            .status(404)
+            .json({ message: `File ${file.originalname} not found` });
+        }
+      }
+      return res.status(200).json({ message: "Files uploaded successfully" });
+    } catch (error) {
+      console.log(error);
+
+      return res.status(500).json({
+        message: "Something went wrong",
+        error: error || "Unknown error",
       });
     }
   }
