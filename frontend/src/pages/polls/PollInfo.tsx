@@ -33,91 +33,73 @@ const PollInfo: React.FC<PollInfoProps> = ({ poll, pollParticipantCount, userPoi
       const seconds = Math.floor((diffTime % (1000 * 60)) / 1000);
 
       if (days > 0) {
-        setTimeRemaining(`${days} day${days > 1 ? "s" : ""} ${hours}h ${minutes}m ${seconds}s remaining`);
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`);
       } else if (hours > 0) {
-        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s remaining`);
+        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
       } else {
-        setTimeRemaining(`${minutes}m ${seconds}s remaining`);
+        setTimeRemaining(`${minutes}m ${seconds}s`);
       }
     };
 
-    updateRemainingTime(); // เรียกครั้งแรกเพื่อให้ UI อัปเดตทันที
-
-    const interval = setInterval(updateRemainingTime, 1000); // อัปเดตทุก 1 วินาที
-
-    return () => clearInterval(interval); // Cleanup เมื่อ component ถูก unmount
+    updateRemainingTime();
+    const interval = setInterval(updateRemainingTime, 1000);
+    return () => clearInterval(interval);
   }, [poll.startVoteAt, poll.endVoteAt]);
 
+  const now = new Date();
+  const startDate = new Date(poll.startVoteAt);
+  const endDate = new Date(poll.endVoteAt);
+  const status = now < startDate ? "Not Started" : now > endDate ? "Ended" : "Active";
+  const statusColors = {
+    "Not Started": "text-yellow-800 bg-yellow-100",
+    "Active": "text-green-800 bg-green-100",
+    "Ended": "text-gray-800 bg-gray-100"
+  };
+
   return (
-    <div className="p-6 mb-6 bg-white rounded-lg shadow-sm">
-      {/* Title & Status */}
-      <div className="flex flex-wrap items-center justify-between mb-4">
-        <h1 className="text-lg font-bold sm:text-xl">{poll.question || "Poll"}</h1>
-        <span
-          className={`px-2 py-1 text-xs font-medium rounded-full ${
-            new Date() < new Date(poll.startVoteAt)
-              ? "text-yellow-800 bg-yellow-100"
-              : new Date() > new Date(poll.endVoteAt)
-              ? "text-gray-800 bg-gray-100"
-              : "text-green-800 bg-green-100"
-          }`}
-        >
-          {new Date() < new Date(poll.startVoteAt) ? "Not Started" : new Date() > new Date(poll.endVoteAt) ? "Ended" : "Active"}
+    <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
+      {/* Header with Title & Status */}
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-lg font-bold truncate">{poll.question || "Poll"}</h1>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[status]}`}>
+          {status}
         </span>
       </div>
 
-      {/* Time Remaining */}
-      <div className="p-3 mb-4 border border-blue-100 rounded-lg bg-blue-50">
-        <div className="flex items-center gap-2 text-blue-800">
-          <Clock className="w-5 h-5 text-blue-600" />
-          <span className="font-medium">{timeRemaining}</span>
+      {/* Time Remaining Banner */}
+      <div className="p-2 mb-3 border border-blue-100 rounded-lg bg-blue-50">
+        <div className="flex items-center gap-1 text-blue-800">
+          <Clock className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-medium">{timeRemaining}</span>
         </div>
       </div>
 
-      {/* Grid Details */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {/* Info Grid */}
+      <div className="grid grid-cols-2 gap-2 mb-3 sm:grid-cols-4">
         {/* Start Date */}
-        <div className="flex items-center gap-2 p-3 rounded-md bg-gray-50">
-          <Calendar className="w-4 h-4 text-gray-600" />
-          <div className="text-sm">
-            <div className="text-xs text-gray-500">Start</div>
-            <div>{DateFormatFullTime(poll.startVoteAt)}</div>
-          </div>
-        </div>
-
+        <InfoCard icon={<Calendar className="w-4 h-4 text-gray-600" />} label="Start" value={DateFormatFullTime(poll.startVoteAt)} />
+        
         {/* End Date */}
-        <div className="flex items-center gap-2 p-3 rounded-md bg-gray-50">
-          <Calendar className="w-4 h-4 text-gray-600" />
-          <div className="text-sm">
-            <div className="text-xs text-gray-500">End</div>
-            <div>{DateFormatFullTime(poll.endVoteAt)}</div>
-          </div>
-        </div>
-
+        <InfoCard icon={<Calendar className="w-4 h-4 text-gray-600" />} label="End" value={DateFormatFullTime(poll.endVoteAt)} />
+        
         {/* Participants */}
-        <div className="flex items-center gap-2 p-3 rounded-md bg-gray-50">
-          <Users className="w-4 h-4 text-gray-600" />
-          <div className="text-sm">
-            <div className="text-xs text-gray-500">Participants</div>
-            <div>{pollParticipantCount} voted</div>
-          </div>
-        </div>
-
-        {/* User Points (Only for non-public polls) */}
+        <InfoCard icon={<Users className="w-4 h-4 text-gray-600" />} label="Participants" value={`${pollParticipantCount} voted`} />
+        
+        {/* User Points */}
         {!poll.isPublic && userPoint > 0 && (
-          <div className="flex items-center gap-2 p-3 text-blue-800 rounded-md bg-blue-50">
+          <div className="flex items-center gap-2 p-2 text-blue-800 rounded-md bg-blue-50">
             <Star className="w-4 h-4 text-blue-600" />
-            <div className="text-sm">
-              <div className="text-xs text-blue-600">Your Points</div>
-              <div className="font-medium">{userPoint} available</div>
+            <div className="text-xs">
+              <div className="text-blue-600">Your Points</div>
+              <div className="font-medium">{userPoint}</div>
             </div>
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger className="cursor-pointer">
-                  <Info className="w-4 h-4 ml-1 text-blue-400" aria-label="Point Info" />
+                <TooltipTrigger>
+                  <Info className="w-3 h-3 text-blue-400" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">Points can be used to vote on poll options</p>
+                  <p className="text-xs">Points for voting on options</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -125,15 +107,32 @@ const PollInfo: React.FC<PollInfoProps> = ({ poll, pollParticipantCount, userPoi
         )}
       </div>
 
-      {/* Poll Description */}
+      {/* Description (only if exists) */}
       {poll.description && (
-        <div className="mt-4 text-sm text-gray-600">
+        <div className="text-xs text-gray-600">
           <h3 className="mb-1 font-medium">Description</h3>
-          <p>{poll.description}</p>
+          <p className="line-clamp-2">{poll.description}</p>
         </div>
       )}
     </div>
   );
 };
+
+// Reusable info card component to reduce repetition
+interface InfoCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}
+
+const InfoCard: React.FC<InfoCardProps> = ({ icon, label, value }) => (
+  <div className="flex items-center gap-2 p-2 rounded-md bg-gray-50">
+    {icon}
+    <div className="text-xs">
+      <div className="text-gray-500">{label}</div>
+      <div className="truncate">{value}</div>
+    </div>
+  </div>
+);
 
 export default PollInfo;
