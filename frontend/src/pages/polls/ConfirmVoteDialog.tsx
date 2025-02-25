@@ -1,9 +1,11 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Check, Star } from "lucide-react";
-import { IOption } from "@/interfaces/interfaces";
+import { IOption, IPoll } from "@/interfaces/interfaces";
 
 interface ConfirmVoteDialogProps {
   isConfirmDialogOpen: boolean;
+  poll: IPoll;
+  remainingPoints: number;
   setIsConfirmDialogOpen: (open: boolean) => void;
   selectedOption: IOption | undefined;
   votingPoint: number;
@@ -14,6 +16,7 @@ interface ConfirmVoteDialogProps {
 const ConfirmVoteDialog: React.FC<ConfirmVoteDialogProps> = ({
   isConfirmDialogOpen,
   setIsConfirmDialogOpen,
+  remainingPoints,
   selectedOption,
   votingPoint,
   userPoint,
@@ -35,7 +38,7 @@ const ConfirmVoteDialog: React.FC<ConfirmVoteDialogProps> = ({
                 <p className="font-medium">Voting with {votingPoint} point{votingPoint !== 1 ? "s" : ""}</p>
               </div>
               <div className="p-3 text-sm text-gray-600 rounded-lg bg-amber-50">
-                <p>This action cannot be undone. Your remaining points: {userPoint - votingPoint}</p>
+                <p>This action cannot be undone. Your remaining points: {userPoint - remainingPoints}</p>
               </div>
             </div>
           </AlertDialogDescription>
