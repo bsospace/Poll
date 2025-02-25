@@ -15,7 +15,7 @@ const router = Router();
 
 
 const prisma = new PrismaClient();
-const pollService = new PollService(prisma)
+const pollService = new PollService(prisma);
 
 const pollController = new PollController(pollService);
 
@@ -33,7 +33,7 @@ const authMiddleware = new AuthMiddleware(
 )
 
 const queueService = new QueueService(prisma);
-const voteController = new VoteController(queueService);
+const voteController = new VoteController(queueService, pollService);
 
 router.get('/my-polls', authMiddleware.validateMulti, pollController.myPolls);
 router.get('/public-polls', authMiddleware.validateMulti, pollController.publicPolls);
