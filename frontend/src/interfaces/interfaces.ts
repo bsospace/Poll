@@ -19,6 +19,7 @@ export interface IEvent {
   updatedAt: Date;
   deletedAt?: Date;
   dataLogs?: any;
+  polls?: IPoll[];
 }
 
 export interface IPoll {
@@ -38,6 +39,7 @@ export interface IPoll {
   updatedAt: Date;
   deletedAt?: Date;
   dataLogs?: any;
+  options?: IOption[];
 }
 
 export interface IOption {
