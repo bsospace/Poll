@@ -82,7 +82,7 @@ export function NavUser({ user, logout }: NavUserProps) {
                                     Your Account
                                 </DropdownMenuItem>
                                 <Link to="/events">
-                                 <DropdownMenuItem>
+                                <DropdownMenuItem>
                                     <Calendar />
                                     Manage Events
                                 </DropdownMenuItem>
