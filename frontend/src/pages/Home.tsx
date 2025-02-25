@@ -50,7 +50,7 @@ export default function Home() {
         {/* My Polls Section */}
         <AccordionItem value="item-1">
           <AccordionTrigger>
-            <h2 className="text-3xl font-bold mb-8">Poll สำหรับคุณ</h2>
+            <h2 className="text-3xl font-bold">Poll สำหรับคุณ</h2>
           </AccordionTrigger>
           <AccordionContent>
             {isLoadingMyPolls ? (
@@ -71,7 +71,7 @@ export default function Home() {
 
         <AccordionItem value="item-3">
           <AccordionTrigger>
-            <h2 className="text-3xl font-bold mb-8">Poll ที่คุณเคยโหวต</h2>
+            <h2 className="text-3xl font-bold">Poll ที่คุณเคยโหวต</h2>
           </AccordionTrigger>
           <AccordionContent>
             {myVotedPolls && myVotedPolls?.length === 0 ? (
@@ -87,7 +87,7 @@ export default function Home() {
         {/* Public Polls Section */}
         <AccordionItem value="item-2">
           <AccordionTrigger>
-            <h2 className="text-3xl font-bold mb-8">Poll สาธารณะ</h2>
+            <h2 className="text-3xl font-bold">Poll สาธารณะ</h2>
           </AccordionTrigger>
           <AccordionContent>
             {isLoadingPublicPolls ? (

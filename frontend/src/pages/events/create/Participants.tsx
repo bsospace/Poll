@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TableCell, TableHead, TableRow, TableHeader, Table, TableBody } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { KeyRound, PlusCircle, Trash2, User, AlertCircle, Copy, Plus, Users, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { KeyRound, PlusCircle, Trash2, User, AlertCircle, Copy, Users, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
 import { IGuest } from '@/interfaces/interfaces';
 import { Badge } from '@/components/ui/badge';
@@ -108,38 +108,18 @@ function Participants({
         <TooltipProvider>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="flex flex-col mb-6 space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
-                    <TabsList className="h-10">
-                        <TabsTrigger value="registered" className="flex items-center gap-2">
+                    <TabsList className="h-10 w-full md:w-auto">
+                        <TabsTrigger value="registered" className="flex items-center gap-2 w-full md:w-auto">
                             <Users size={16} />
-                            Registered Participants
+                                Participants
                             <Badge variant="secondary" className="ml-1">{whitelist.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="guest" className="flex items-center gap-2">
+                        <TabsTrigger value="guest" className="flex items-center gap-2 w-full md:w-auto">
                             <KeyRound size={16} />
-                            Guest Codes
+                                Guest Codes
                             <Badge variant="secondary" className="ml-1">{guest?.length || 0}</Badge>
                         </TabsTrigger>
                     </TabsList>
-                    <div className="flex justify-end">
-                        {activeTab === 'registered' ? (
-                            <Button 
-                                onClick={validateAndAddWhitelist} 
-                                className="flex items-center gap-2"
-                            >
-                                <Plus size={16} />
-                                Add Participants
-                            </Button>
-                        ) : (
-                            <Button 
-                                onClick={validateAndGenerateGuests} 
-                                className="flex items-center gap-2"
-                                disabled={guestNumber <= 0}
-                            >
-                                <KeyRound size={16} />
-                                Generate Codes
-                            </Button>
-                        )}
-                    </div>
                 </div>
 
                 <TabsContent value="registered" className="mt-0">
@@ -158,17 +138,17 @@ function Participants({
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
                                     <div className="flex-grow">
                                         <div className="flex items-center justify-between">
-                                            <Label htmlFor="whitelist-email" className="block mb-2">Participant Email(s)</Label>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-6 px-2">
+                                            <Label htmlFor="whitelist-email" className="flex mb-2">
+                                                <p className="mr-2">Participant Email(s)</p>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
                                                         <HelpCircle size={14} />
-                                                    </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p className="max-w-xs">Enter multiple emails separated by commas</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="max-w-xs">Enter multiple emails separated by commas</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </Label>
                                         </div>
                                         <Input
                                             id="whitelist-email"
@@ -180,13 +160,23 @@ function Participants({
                                     </div>
 
                                     <div className="w-full sm:w-24">
-                                        <Label htmlFor="whitelist-point" className="block mb-2">Points</Label>
+                                        <Label htmlFor="whitelist-point" className="mb-2 flex">
+                                            <p className="mr-2">Points</p>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <HelpCircle size={14} />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="max-w-xs">Initial Point of Participant (default 1)</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </Label>
                                         <Input
                                             id="whitelist-point"
                                             type="number"
                                             value={initialWhitelistPoints}
                                             onChange={(e) => setInitialWhitelistPoints(Number(e.target.value))}
-                                            min="0"
+                                            min="1"
                                         />
                                     </div>
                                     <Button
@@ -206,7 +196,7 @@ function Participants({
                                 )}
                             </div>
 
-                            <ScrollArea className="h-64 rounded-md">
+                            <ScrollArea className="min-h-64 h-full rounded-md">
                                 {whitelist.length > 0 ? (
                                     <div className="overflow-hidden border rounded-md">
                                         <Table>
@@ -298,18 +288,18 @@ function Participants({
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
-                                <span>Guest Codes</span>
+                                <span>Guest keys</span>
                                 <Badge variant="outline" className="ml-2">
-                                    {guest?.length || 0} {guest?.length === 1 ? 'Code' : 'Codes'}
+                                    {guest?.length ?? 0} {guest?.length === 1 ? 'Code' : 'Codes'}
                                 </Badge>
                             </CardTitle>
-                            <CardDescription>Generate access codes for unregistered guests</CardDescription>
+                            <CardDescription>Generate access keys for unregistered guests</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="p-4 border rounded-lg bg-gray-50/50">
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
                                     <div className="w-full sm:w-32">
-                                        <Label htmlFor="guest-number" className="block mb-2">Number of Codes</Label>
+                                        <Label htmlFor="guest-number" className="block mb-2">Number of Keys</Label>
                                         <Input
                                             id="guest-number"
                                             type="number"
@@ -319,13 +309,24 @@ function Participants({
                                         />
                                     </div>
                                     <div className="w-full sm:w-32">
-                                        <Label htmlFor="guest-point" className="block mb-2">Points per Guest</Label>
+                                        <Label htmlFor="guest-point" className="flex mb-2">
+                                            <p className="mr-2">Points</p>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <HelpCircle size={14} />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="max-w-xs">Initial Point per Guest (default 1)</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </Label>
+
                                         <Input
                                             id="guest-point"
                                             type="number"
                                             value={guestPoint}
                                             onChange={(e) => setGuestPoint(Number(e.target.value))}
-                                            min="0"
+                                            min="1"
                                         />
                                     </div>
                                     <div className="flex items-end">
@@ -335,7 +336,7 @@ function Participants({
                                             disabled={guestNumber <= 0}
                                         >
                                             <KeyRound size={16} />
-                                            Generate
+                                            {guest && guest.length > 0 ? 'Generate more' : 'Generate'}
                                         </Button>
                                     </div>
                                 </div>
@@ -348,7 +349,7 @@ function Participants({
                                 )}
                             </div>
 
-                            <ScrollArea className="h-64 rounded-md">
+                            <ScrollArea className="min-h-64 h-full rounded-md">
                                 {guest && guest.length > 0 ? (
                                     <div className="overflow-hidden border rounded-md">
                                         <Table>
