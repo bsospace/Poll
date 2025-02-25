@@ -192,7 +192,6 @@ class AuthMiddleware {
   /**  Extract Token */
   private extractToken(req: Request): string | null {
     const authHeader = req.headers?.authorization;
-    console.log(authHeader);
     
     return authHeader?.startsWith("Bearer ")
       ? authHeader.split(" ")[1]
