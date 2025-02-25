@@ -52,6 +52,7 @@ export interface IUser {
     createdAt: Date;
     updatedAt: Date;
     deletedAt?: Date | null;
+    canEdit?: boolean;
 
   }
   
