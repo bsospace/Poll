@@ -66,7 +66,7 @@ export default function EventView() {
                         <div className="flex items-center justify-between mt-6">
                             <h2 className="text-xl font-semibold">Polls</h2>
                             {/* ปุ่ม Create Poll */}
-                            <Link to={`/event/${id}/poll/create`}>
+                            <Link to={`/event/${id}/polls/create`}>
                                 <Button className="gap-2">
                                     <Plus className="w-4 h-4" />
                                     Create Poll
