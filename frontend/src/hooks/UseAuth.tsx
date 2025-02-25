@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -9,6 +9,7 @@ import { axiosInstance } from '@/lib/Utils'
 import { API_ENDPOINTS } from '@/lib/Constants'
 import { config } from '@/config/Config'
 import { IUser } from '@/interfaces/interfaces'
+import { toast } from 'sonner';
 
 interface User extends IUser {
   isGuest: boolean
@@ -70,6 +71,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAccessToken(credentials.accessToken)
       localStorage.setItem('accessToken', credentials.accessToken)
       window.location.href = redirect
+
+    } catch (error: unknown) {
+      console.error("Error:", error);
+    
+      if (typeof error === "object" && error !== null && "response" in error) {
+        const err = error as { response: { data?: { message?: string; error?: string } } };
+    
+        const errorMessage = err.response?.data?.message ?? "An unexpected error occurred.";
+        const errorDescription = err.response?.data?.error ?? "";
+    
+        toast.error(errorMessage, {description: errorDescription});
+  
+      } else {
+        toast.error("An unexpected error occurred.");
+      }    
     } finally {
       setIsLoading(false)
     }
@@ -106,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updatedAt: string
         deletedAt: string | null
         dataLogs: Array<{
-          meta: any[]
+          meta: Record<string, unknown>[]
           action: string
           createdAt: string
           createdBy: string
