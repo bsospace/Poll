@@ -206,9 +206,18 @@ export class PollController {
         });
       }
 
+      const userVotedResults = await this.pollService.getUserVotedResults(pollId, user.id, user.guest);
+      const pollParticipantCount = await this.pollService.getPollPaticipantCount(pollId);
+      const getRemainingPoints = await this.pollService.getRemainingPoints(pollId, user.id, user.guest);
+
       res.status(200).json({
         message: "Polls fetched successfully",
-        data: polls
+        data: {
+          poll: polls,
+          userVotedResults,
+          pollParticipantCount,
+          remainingPoints: getRemainingPoints
+        }
       });
     } catch (error) {
       next(error);

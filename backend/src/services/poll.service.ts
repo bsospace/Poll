@@ -151,6 +151,116 @@ export class PollService {
         }
     }
 
+    public async getUserVotedResults(pollId: string, userId: string, isGuest: boolean) {
+        try {
+            const poll = await this.prisma.poll.findFirst({
+                where: { id: pollId, deletedAt: null },
+                include: {
+                    options: true,
+                    event: {
+                        include: {
+                            whitelist: isGuest ? undefined : { where: { userId: userId, deletedAt: null } },
+                            guests: isGuest ? { where: { id: userId, deletedAt: null } } : undefined,
+                        },
+                    },
+                    votes: {
+                        where: { userId: userId, deletedAt: null },
+                    },
+                },
+            });
+
+            if (!poll) {
+                console.warn(`[WARN] Poll with ID ${pollId} not found.`);
+                return null;
+            }
+
+            // return user voted results
+            return poll.options.map(option => {
+                const votes = poll.votes.filter(vote => vote.optionId === option.id);
+                return {
+                    optionId: option.id,
+                    optionName: option.text,
+                    votes: votes.length,
+                };
+            })
+        } catch (error) {
+            console.error("[ERROR] getUserVotedResults:", error);
+            throw new Error("Failed to fetch poll");
+        }
+    }
+
+    public async getRemainingPoints(pollId: string, userId: string, isGuest: boolean) {
+        try {
+
+            let point = 0;
+            const poll = await this.prisma.poll.findFirst({
+                where: { id: pollId, deletedAt: null },
+                include: {
+                    event: {
+                        include: {
+                            whitelist: isGuest ? undefined : { where: { userId: userId, deletedAt: null } },
+                            guests: isGuest ? { where: { id: userId, deletedAt: null } } : undefined,
+                        },
+                    },
+                },
+            });
+
+            if (!poll) {
+                console.warn(`[WARN] Poll with ID ${pollId} not found.`);
+                return null;
+            }
+
+            if (isGuest) {
+                const guest = poll.event?.guests.find(guest => guest.id === userId);
+                point = guest?.point ?? 0;
+            }
+
+            if (!isGuest) {
+                const whitelist = poll.event?.whitelist.find(whitelist => whitelist.userId === userId);
+                point = whitelist?.point ?? 0;
+            }
+
+            if(poll.isPublic) {
+                point = 1;
+            }
+
+            return point;
+        } catch (error) {
+            console.error("[ERROR] getRemainingPoints:", error);
+            throw new Error("Failed to fetch poll");
+        }
+    }
+
+    public async getPollPaticipantCount(pollId: string) {
+        try {
+            const poll = await this.prisma.poll.findFirst({
+                where: { id: pollId, deletedAt: null },
+                include: {
+                    event: {
+                        include: {
+                            guests: true,
+                            whitelist: true,
+                        },
+                    },
+                },
+            });
+
+            if (!poll) {
+                console.warn(`[WARN] Poll with ID ${pollId} not found.`);
+                return null;
+            }
+
+            const guests = poll.event?.guests ?? [];
+            const whitelist = poll.event?.whitelist ?? [];
+
+            return guests.length + whitelist.length;
+
+        } catch (error) {
+            console.error("[ERROR] getPollVotedCount:", error);
+            throw new Error("Failed to fetch poll");
+        }
+    }
+
     /**
      * Check if user can vote
      */
@@ -165,7 +275,7 @@ export class PollService {
                         { isPublic: true },
                         {
                             isPublic: false,
-                            isVoteEnd: false, 
+                            isVoteEnd: false,
                             event: {
                                 ...(isGuest
                                     ? { guests: { some: { id: userId, deletedAt: null } } }

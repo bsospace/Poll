@@ -7,7 +7,7 @@ import HomePage from '@/pages/Home'
 import Callback from '@/pages/auth/Callback'
 import Events from '@/pages/events/Index'
 import CreateEvent from '@/pages/events/Create/Index'
-import PollDetails from '@/pages/PollDetails'
+import PollDetails from '@/pages/polls/Index'
 import EventView from '@/pages/events/EventView'
 import CreatePoll from '@/pages/events/poll'
 
