@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import { QueueService } from "../services/queue.service";
+import { PollService } from "../services/poll.service";
 
 export class VoteController {
     private queueService: QueueService;
+    private pollService: PollService;
 
-    constructor(queueService: QueueService) {
+    constructor(queueService: QueueService, pollService: PollService) {
         this.queueService = queueService;
+        this.pollService = pollService;
 
         this.vote = this.vote.bind(this);
     }
@@ -32,8 +35,21 @@ export class VoteController {
                 });
             }
 
+            const poll = await this.pollService.getPoll(
+                pollId,
+                userId,
+                user.guest,
+            );
+
+            if (!poll) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Poll not found.",
+                });
+            }
+
             // Add vote to queue instead of processing it directly
-            await this.queueService.addVoteToQueue({ pollId, optionId, userId, points: point, isGuest: user.guest });
+            await this.queueService.addVoteToQueue({ pollId, optionId, userId, points: point, isGuest: user.guest, isPublic: poll.isPublic });
 
             return res.status(202).json({
                 success: true,
