@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { EventService } from "../services/event.service";
+import { IPoll } from "../interface";
 
 export class EventController {
 
