@@ -83,7 +83,7 @@ export class PollService {
     public async myVotedPolls(userId: string, isGuest: boolean, logs?: boolean): Promise<{ polls: IPoll[] }> {
         try {
 
-            if(isGuest){
+            if (isGuest) {
                 const rawPolls = await this.prisma.poll.findMany({
                     where: {
                         deletedAt: null,
@@ -434,6 +434,58 @@ export class PollService {
             throw new Error(
                 `Failed to create polls for event ${eventId}: ${error}`
             );
+        }
+    }
+
+    public async result(
+        pollId: string,
+        userId: string,
+        isGuest: boolean,
+        logs?: boolean
+    ) {
+        try {
+            const poll = await this.prisma.poll.findFirst({
+                where: { id: pollId, deletedAt: null },
+                include: {
+                    options: {
+                        where: { deletedAt: null },
+                        include: {
+                            _count: {
+                                select: { votes: true },
+                            },
+                        },
+                    },
+                    event: {
+                        where: { deletedAt: null },
+                    },
+                },
+            });
+
+            if (!poll) {
+                console.warn(`[WARN] Poll with ID ${pollId} not found.`);
+                return null;
+            }
+
+            // Count total votes
+            const totalVotes = poll.options.reduce((sum, option) => sum + option._count.votes, 0);
+
+            // Calculate percentage for each option
+            const optionsWithPercentage = poll.options.map(option => ({
+                optionId: option.id,
+                count: option._count.votes,
+                percentage: totalVotes > 0 ? (option._count.votes / totalVotes) * 100 : 0,
+            }));
+
+            // Return formatted result
+            const result = {
+                poll: this.formatPoll(poll, logs),
+                options: optionsWithPercentage,
+            };
+
+            return result;
+        } catch (error) {
+            console.error("[ERROR] result:", error);
+            throw new Error("Failed to fetch poll result");
         }
     }
 }

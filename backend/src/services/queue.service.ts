@@ -96,7 +96,7 @@ class QueueService {
                             // Deduct points only for non-public polls
                             if (isGuest) {
                                 const guest = await tx.guest.findUnique({
-                                    where: { id: userId },
+                                    where: { id: userId, eventId: poll.eventId },
                                     select: { point: true },
                                 });
 
@@ -105,12 +105,15 @@ class QueueService {
                                 if (guest.point < points) throw new Error(`Guest ${userId} does not have enough points.`);
 
                                 await tx.guest.updateMany({
-                                    where: { id: userId },
+                                    where: { id: userId ,eventId: poll.eventId },
                                     data: { point: { decrement: points } },
                                 });
                             } else {
                                 const whitelistUser = await tx.whitelistUser.findFirst({
-                                    where: { userId },
+                                    where: {
+                                        userId: userId,
+                                        eventId: poll.eventId,
+                                    },
                                     include: { user: true },
                                 });
 
@@ -119,7 +122,7 @@ class QueueService {
                                 if (whitelistUser.point < points) throw new Error(`User ${userId} does not have enough points.`);
 
                                 await tx.whitelistUser.updateMany({
-                                    where: { userId: userId },
+                                    where: { userId: userId, eventId: poll.eventId },
                                     data: { point: { decrement: points } },
                                 });
                             }
