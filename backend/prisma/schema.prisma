@@ -8,86 +8,87 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  firstName   String
-  lastName    String
-  email       String   @unique
-  avatar      String?
-  events      Event[]  @relation("EventOwner")
-  polls       Poll[]   @relation("PollOwner")
-  whitelist   WhitelistUser[]
-  votes       Vote[]
-  userVotes   VoteRestriction[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-  dataLogs    Json?
+  id        String            @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String            @unique
+  avatar    String?
+  events    Event[]           @relation("EventOwner")
+  polls     Poll[]            @relation("PollOwner")
+  whitelist WhitelistUser[]
+  votes     Vote[]
+  userVotes VoteRestriction[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  deletedAt DateTime?
+  Image     Image[]
+  dataLogs  Json?
 }
 
 model Event {
-  id          String   @id @default(uuid())
+  id          String          @id @default(uuid())
   name        String
   description String?
   userId      String
-  owner       User     @relation("EventOwner", fields: [userId], references: [id], onDelete: Cascade)
+  owner       User            @relation("EventOwner", fields: [userId], references: [id], onDelete: Cascade)
   polls       Poll[]
   whitelist   WhitelistUser[]
   guests      Guest[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   deletedAt   DateTime?
   dataLogs    Json?
 }
 
 model Poll {
-  id           String   @id @default(uuid())
-  eventId      String?  
-  event        Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  id           String            @id @default(uuid())
+  eventId      String?
+  event        Event?            @relation(fields: [eventId], references: [id], onDelete: SetNull)
   userId       String
-  owner        User     @relation("PollOwner", fields: [userId], references: [id], onDelete: Cascade)
+  owner        User              @relation("PollOwner", fields: [userId], references: [id], onDelete: Cascade)
   question     String
   description  String?
-  isPublic     Boolean  @default(false)
-  canEdit      Boolean  @default(false)
-  showResult   Boolean  @default(false)
+  isPublic     Boolean           @default(false)
+  canEdit      Boolean           @default(false)
+  showResult   Boolean           @default(false)
   startVoteAt  DateTime
   endVoteAt    DateTime
-  isVoteEnd    Boolean  @default(false)
+  isVoteEnd    Boolean           @default(false)
   banner       String?
   publishedAt  DateTime?
   options      Option[]
   votes        Vote[]
   voteRestrict VoteRestriction[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
   deletedAt    DateTime?
   dataLogs     Json?
 }
 
 model Option {
-  id           String   @id @default(uuid())
+  id           String            @id @default(uuid())
   text         String
   banner       String?
   description  String?
   pollId       String
-  poll         Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  poll         Poll              @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes        Vote[]
   voteRestrict VoteRestriction[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
   deletedAt    DateTime?
   dataLogs     Json?
 }
 
 model WhitelistUser {
-  id        String  @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   eventId   String?
-  event     Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  point     Int     @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  event     Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  point     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   dataLogs  Json?
 
@@ -95,58 +96,79 @@ model WhitelistUser {
 }
 
 model Guest {
-  id         String  @id @default(uuid())
+  id         String            @id @default(uuid())
   name       String
   key        String
-  point      Int     @default(0)
+  point      Int               @default(0)
   eventId    String?
-  event      Event?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event      Event?            @relation(fields: [eventId], references: [id], onDelete: Cascade)
   votes      Vote[]
   guestVotes VoteRestriction[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
   deletedAt  DateTime?
   dataLogs   Json?
 }
 
 model VoteRestriction {
-  id        String  @id @default(uuid())
-  userId    String? 
-  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guestId   String? 
-  guest     Guest?  @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid())
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guestId   String?
+  guest     Guest?    @relation(fields: [guestId], references: [id], onDelete: Cascade)
   pollId    String
-  poll      Poll    @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  poll      Poll      @relation(fields: [pollId], references: [id], onDelete: Cascade)
   optionId  String
-  option    Option  @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  option    Option    @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   dataLogs  Json?
 }
 
 model Vote {
-  id        String  @id @default(uuid())
+  id        String    @id @default(uuid())
   pollId    String
-  poll      Poll    @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  point     Int     @default(0)
+  poll      Poll      @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  point     Int       @default(0)
   optionId  String
-  option    Option  @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  userId    String? 
-  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  option    Option    @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   guestId   String?
-  guest     Guest?  @relation(fields: [guestId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  guest     Guest?    @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   dataLogs  Json?
 }
 
 model FailedJob {
-  id        String  @id @default(uuid())
-  jobId     String  @unique
+  id        String   @id @default(uuid())
+  jobId     String   @unique
   queueName String
   data      Json
   error     String
   createdAt DateTime @default(now())
+}
+
+model Image {
+  id        String    @id @default(uuid())
+  key       String    @unique
+  url       String
+  mimeType  String?
+  size      Int?
+  ownerId   String?
+  owner     User?     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  relatedTo String?
+  relatedId String?
+  table     String?
+  hasUpload Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  dataLogs  Json?
+
+  @@unique([relatedTo, relatedId, key])
+  @@index([relatedTo, relatedId])
 }
