@@ -46,7 +46,7 @@ export default function CreatePoll() {
   const [errors, setErrors] = useState<{ question?: string; options?: string; startVoteAt?: string; endVoteAt?: string }>({});
 
   const navigate = useNavigate();
-  
+
   // Prevent accidental page refresh or navigation
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -163,37 +163,6 @@ export default function CreatePoll() {
   const handleSaveDraft = async () => {
     if (!validateForm()) return;
     setIsSaving(true);
-    try {
-      await axiosInstance.post("/polls/draft", {
-        eventId: id,
-        question,
-        description,
-        banner: bannerPollImage?.key,
-        options,
-      });
-
-      toast.success("Draft saved successfully");
-    } catch (error: unknown) {
-      console.error("Error:", error);
-
-      if (typeof error === "object" && error !== null && "response" in error) {
-        const err = error as { response: { data?: { message?: string; error?: string } } };
-
-        const errorMessage = err.response?.data?.message ?? "An unexpected error occurred.";
-        const errorDescription = err.response?.data?.error ?? "";
-
-        toast.error(errorMessage, { description: errorDescription });
-
-      } else {
-        toast.error("An unexpected error occurred.");
-      }
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  const handlePublish = async () => {
-    if (!validateForm()) return;
-    setIsPublishing(true);
 
     try {
       // **จัดรูปแบบข้อมูลให้ตรงกับ Backend**
@@ -203,7 +172,7 @@ export default function CreatePoll() {
         startVoteAt,
         banner: bannerPollImage?.key,
         endVoteAt,
-        publishAt: new Date().toISOString(),
+        publishedAt: null,
         options,
       };
 
@@ -218,8 +187,59 @@ export default function CreatePoll() {
       });
 
       if (response.status === 200) {
-        navigate(`/events/${id}`);
-        
+        navigate(`/event/${id}`);
+
+        toast.success("Poll published successfully!");
+      } else {
+        toast.error("Failed to publish poll. Please try again.");
+      }
+    } catch (error: unknown) {
+      console.error("Error publishing poll:", error);
+
+      if (typeof error === "object" && error !== null && "response" in error) {
+        const err = error as { response: { data?: { message?: string; error?: string } } };
+
+        const errorMessage = err.response?.data?.message ?? "An unexpected error occurred.";
+        const errorDescription = err.response?.data?.error ?? "";
+
+        toast.error(errorMessage, { description: errorDescription });
+      } else {
+        toast.error("An unexpected error occurred.");
+      }
+    } finally {
+      setIsPublishing(false);
+    }
+
+  };
+  const handlePublish = async () => {
+    if (!validateForm()) return;
+    setIsPublishing(true);
+
+    try {
+      // **จัดรูปแบบข้อมูลให้ตรงกับ Backend**
+      const pollData = {
+        question,
+        description,
+        startVoteAt,
+        banner: bannerPollImage?.key,
+        endVoteAt,
+        publishedAt: new Date().toISOString(),
+        options,
+      };
+
+      const payload = {
+        polls: [pollData], // **Backend คาดหวัง `polls` เป็น array**
+      };
+
+      const response = await axiosInstance.post(`/events/${id}/polls/create`, payload, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 200) {
+        navigate(`/event/${id}`);
+
         toast.success("Poll published successfully!");
       } else {
         toast.error("Failed to publish poll. Please try again.");
