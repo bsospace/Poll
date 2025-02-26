@@ -52,6 +52,10 @@ export class CryptoService {
      */
     private readKey(service: string, type: 'Access' | 'Refresh', keyType: 'Private' | 'Public'): Buffer {
         const keyPath = this.getKeyPath(service, type, keyType);
+        console.log("keyPath", keyPath);
+        console.log("keyType", keyType);
+        console.log("type", type);
+        console.log("service", service);
         try {
             return readFileSync(keyPath);
         } catch (error) {
