@@ -2,38 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { axiosInstance } from '@/lib/Utils';
-import { IPoll, IOption } from '@/interfaces/interfaces';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { CalendarIcon, UserIcon, ClockIcon, EyeIcon, BarChart2 } from 'lucide-react';
+import { IPoll } from '@/interfaces/interfaces';
+
+const COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EF4444'];
 
 const PollResult = () => {
   const { id } = useParams();
-  const [poll, setPoll] = useState<IPoll | null>(null);
-  const [totalVotes, setTotalVotes] = useState<number>(0);
-  const [optionVoteCounts, setOptionVoteCounts] = useState<Record<string, number>>({});
+  const [poll, setPoll] = useState<IPoll | null>();
+  const [totalVotes, setTotalVotes] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-
+  
   const fetchPollData = async () => {
     try {
-      setIsLoading(true);
-      const response = await axiosInstance.get(`/polls/${id}`);
+      const response = await axiosInstance.get(`/polls/${id}/result`);
       const pollData = response.data.data;
-      setPoll(pollData);
-      const voteCounts: Record<string, number> = {};
-      let total = 0;
-
-      pollData.poll.options.forEach((option: IOption) => {
-        const voteCount = response.data.userVotedResults?.find(
-          (res: { optionId: string }) => res.optionId === option.id
-        )?.votes.length || 0; // ใช้ optional chaining
-
-        voteCounts[option.id] = voteCount;
-        total += voteCount;
-      });
-
-      setTotalVotes(total);
-      setOptionVoteCounts(voteCounts);
+      setPoll(pollData.poll);
+      setTotalVotes(pollData.options.reduce((sum, opt) => sum + opt.count, 0));
     } catch (error) {
       toast.error('Failed to load poll data');
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -41,36 +29,68 @@ const PollResult = () => {
 
   useEffect(() => {
     if (id) {
-      fetchPollData();
+      fetchPollData(); // ดึงข้อมูลครั้งแรก
+  
+      const interval = setInterval(() => {
+        fetchPollData();
+      }, 5000); // ดึงข้อมูลทุก 1 วินาที
+  
+      return () => clearInterval(interval); // เคลียร์ interval เมื่อ component ถูก unmount
     }
   }, [id]);
+  
 
-  if (!poll) {
-    return <p>No poll data available</p>;
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64 animate-spin text-indigo-500 text-3xl">⏳</div>;
   }
 
-  console.log('poll', poll);
+  if (!poll) {
+    return <div className="text-center text-gray-500 text-lg">No poll data available</div>;
+  }
+
+  const chartData = poll.options.map((option, index) => ({
+    name: option.text,
+    votes: option._count.votes || 0,
+  }));
 
   return (
-    <div className="max-w-4xl mx-auto md:py-8 md:px-4">
-      <div className="poll-header">
-        <h1>{poll.poll.question}</h1>
-        <p>{poll.poll.description}</p>
-        {poll.banner && <img src={poll.poll.banner} alt="Poll Banner" className="poll-banner" />}
-      </div>
-
-      <div className="options-container">
-        {poll.poll.options?.map((option) => (
-          <div className="poll-option" key={option.id}>
-            {option.banner && (
-              <img src={poll.poll.banner}className="option-banner" />
-            )}
-            <h2>{option.text}</h2>
-            {option.description && <p><strong>Description:</strong> {option.description}</p>}
-            {option.points !== undefined && <p><strong>Points:</strong> {option.points}</p>}
-            <p><strong>Votes:</strong> {poll.poll.userVotedResults || 0}</p>
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="bg-white shadow-lg rounded-xl overflow-hidden">
+        {poll.banner && (
+          <div className="relative h-48 w-full">
+            <img src={poll.banner} alt="Poll Banner" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+            <div className="absolute bottom-4 left-4 text-white">
+              <h1 className="text-2xl font-bold">{poll.question}</h1>
+            </div>
           </div>
-        ))}
+        )}
+        <div className="p-6">
+          {!poll.banner && <h1 className="text-2xl font-bold text-gray-800 mb-4">{poll.question}</h1>}
+          <p className="text-gray-600 mb-4">{poll.description}</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-gray-500">
+            <div className="flex items-center"><CalendarIcon size={16} className="mr-2 text-indigo-500" /> {new Date(poll.createdAt).toLocaleDateString()}</div>
+            <div className="flex items-center"><ClockIcon size={16} className="mr-2 text-indigo-500" /> Ends: {new Date(poll.endVoteAt).toLocaleDateString()}</div>
+            <div className="flex items-center"><UserIcon size={16} className="mr-2 text-indigo-500" /> By: {poll.event?.name || 'Unknown'}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-white shadow-lg rounded-xl p-6">
+        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center"><BarChart2 size={20} className="mr-2 text-indigo-500" /> Poll Results</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData} layout="vertical">
+            <XAxis type="number" hide />
+            <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#374151', fontSize: 14 }} />
+            <Tooltip cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
+            <Bar dataKey="votes" fill="#6366F1" barSize={30} radius={[5, 5, 0, 0]}>
+              {chartData.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <p className="text-gray-500 text-center mt-4">Total Votes: {totalVotes}</p>
       </div>
     </div>
   );
