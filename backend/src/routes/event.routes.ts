@@ -16,13 +16,13 @@ import AuthMiddleware from "../middlewares/auth.middleware";
 import { PollService } from "../services/poll.service";
 import multer from "multer";
 import { upload } from "../utils/multerConfig.util";
+import { R2Service } from "../services/r2.services";
 
 const router = Router();
 
 const prisma = new PrismaClient();
 const eventService = new EventService(prisma);
 
-const pollService = new PollService(prisma);
 
 const userService = new UserService(prisma);
 
@@ -35,9 +35,11 @@ const authMiddleware = new AuthMiddleware(
   authService
 );
 
+const r2Service = new R2Service(prisma);
+const pollService = new PollService(prisma, r2Service);
 
 const eventController = new EventController(eventService);
-const pollController = new PollController(pollService);
+const pollController = new PollController(pollService, r2Service);
 
 router.get(
   "/",

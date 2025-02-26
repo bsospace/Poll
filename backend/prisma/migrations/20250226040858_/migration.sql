@@ -137,6 +137,26 @@ CREATE TABLE "FailedJob" (
     CONSTRAINT "FailedJob_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Image" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "mimeType" TEXT,
+    "size" INTEGER,
+    "ownerId" TEXT,
+    "relatedTo" TEXT,
+    "relatedId" TEXT,
+    "table" TEXT,
+    "hasUpload" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+    "dataLogs" JSONB,
+
+    CONSTRAINT "Image_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -145,6 +165,15 @@ CREATE UNIQUE INDEX "WhitelistUser_userId_eventId_key" ON "WhitelistUser"("userI
 
 -- CreateIndex
 CREATE UNIQUE INDEX "FailedJob_jobId_key" ON "FailedJob"("jobId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Image_key_key" ON "Image"("key");
+
+-- CreateIndex
+CREATE INDEX "Image_relatedTo_relatedId_idx" ON "Image"("relatedTo", "relatedId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Image_relatedTo_relatedId_key_key" ON "Image"("relatedTo", "relatedId", "key");
 
 -- AddForeignKey
 ALTER TABLE "Event" ADD CONSTRAINT "Event_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -190,3 +219,6 @@ ALTER TABLE "Vote" ADD CONSTRAINT "Vote_userId_fkey" FOREIGN KEY ("userId") REFE
 
 -- AddForeignKey
 ALTER TABLE "Vote" ADD CONSTRAINT "Vote_guestId_fkey" FOREIGN KEY ("guestId") REFERENCES "Guest"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Image" ADD CONSTRAINT "Image_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
