@@ -128,11 +128,16 @@ class AuthMiddleware {
       if (!token) return null;
 
       const decode = this.cryptoService.decodeToken(token);
+
+      console.log("decode", decode);
       if (!decode || decode.guest) return null;
 
       if (decode.service !== envConfig.app.serviceName) {
         return null;
       };
+
+      console.log("decode.service", decode.service);
+      console.log("envConfig.app.serviceName", envConfig.app.serviceName);
 
       // Verify the access token
       const jwtPayload: JwtPayload | null = this.cryptoService.verifyAccessTokenOpenId(
@@ -140,9 +145,13 @@ class AuthMiddleware {
         decode.service
       );
 
+      console.log("jwtPayload", jwtPayload);
+
       if (!jwtPayload || !jwtPayload.email || !jwtPayload.sub) return null;
 
       let user = await cacheService.get<IUser>(`users:${jwtPayload.email}`);
+
+      console.log("user", user);
       
       const userProlife = await this.authService.profile(token);
 
