@@ -39,6 +39,7 @@ export interface IUser {
     question: string;
     description?: string;
     isPublic: boolean;
+    showResult: boolean;
     startVoteAt: Date;
     endVoteAt: Date;
     isVoteEnd: boolean;
