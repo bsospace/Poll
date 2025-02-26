@@ -9,7 +9,7 @@ export class CryptoService {
     private readonly keyDirectory: string;
 
     constructor() {
-        this.keyDirectory = path.join(process.cwd(), 'keys');
+        this.keyDirectory = path.join(__dirname, '..', '..', 'keys');
     }
 
     /**
@@ -109,6 +109,8 @@ export class CryptoService {
     public verifyAccessTokenOpenId(token: string, service: string): JwtPayload | null {
         try {
             const publicAccessKey = this.readKey(service, 'Access', 'Public');
+
+            console.log("publicAccessKey", publicAccessKey);
             return jwt.verify(token, publicAccessKey, { algorithms: ['RS256'] }) as JwtPayload;
         } catch (error) {
             return null;
