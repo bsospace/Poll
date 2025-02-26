@@ -8,8 +8,8 @@ export class PollController {
   private pollService: PollService;
   private r2Service: R2Service;
   constructor(pollService: PollService, r2Service: R2Service) {
-    
-    this.pollService= pollService;
+
+    this.pollService = pollService;
     this.r2Service = r2Service;
     this.getPoll = this.getPoll.bind(this);
     this.getPolls = this.getPolls.bind(this);
@@ -17,6 +17,7 @@ export class PollController {
     this.publicPolls = this.publicPolls.bind(this);
     this.myVotedPolls = this.myVotedPolls.bind(this);
     this.createPollByEventId = this.createPollByEventId.bind(this);
+    this.getPollResults = this.getPollResults.bind(this);
   }
 
   /**
@@ -265,7 +266,7 @@ export class PollController {
 
       JSON.stringify(polls);
 
-      
+
       if (!user) {
         return res.status(401).json({ success: false, message: "Unauthorized" });
       }
@@ -296,56 +297,25 @@ export class PollController {
     }
   }
 
-  // public getPoll = async (req: Request, res: Response, next: NextFunction) => {
-  //     try {
-  //         const { pollId } = req.params;
-  //         const poll = await this.pollService.getPoll(pollId);
-  //         res.status(200).json({
-  //             message: "Poll fetched successfully",
-  //             data: poll
-  //         });
-  //     } catch (error) {
-  //         next(error);
-  //     }
-  // }
+  public async getPollResults(req: Request, res: Response): Promise<any> {
+    try {
+      const { pollId } = req.params;
+      const user = req.user;
 
-  // public createPoll = async (req: Request, res: Response, next: NextFunction) => {
-  //     try {
-  //         const { poll } = req.body;
-  //         const newPoll = await this.pollService.createPoll(poll);
-  //         res.status(201).json({
-  //             message: "Poll created successfully",
-  //             data: newPoll
-  //         });
-  //     } catch (error) {
-  //         next(error);
-  //     }
-  // }
+      if (!user) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+      }
 
-  // public updatePoll = async (req: Request, res: Response, next: NextFunction) => {
-  //     try {
-  //         const { pollId } = req.params;
-  //         const { poll } = req.body;
-  //         const updatedPoll = await this.pollService.updatePoll(pollId, poll);
-  //         res.status(200).json({
-  //             message: "Poll updated successfully",
-  //             data: updatedPoll
-  //         });
-  //     } catch (error) {
-  //         next(error);
-  //     }
-  // }
+      const pollResults = await this.pollService.result(pollId, user.id, user.guest);
 
-  // public deletePoll = async (req: Request, res: Response, next: NextFunction) => {
-  //     try {
-  //         const { pollId } = req.params;
-  //         await this.pollService.deletePoll(pollId);
-  //         res.status(200).json({
-  //             message: "Poll deleted successfully",
-  //             data: null
-  //         });
-  //     } catch (error) {
-  //         next(error);
-  //     }
-  // }
+      return res.status(200).json({
+        success: true,
+        message: "Poll results fetched successfully",
+        data: pollResults,
+      });
+    } catch (error) {
+      console.error("[ERROR] getPollResults:", error);
+      return res.status(500).json({ message: "Something went wrong", error });
+    }
+  }
 }
