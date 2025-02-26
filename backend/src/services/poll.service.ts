@@ -62,7 +62,7 @@ export class PollService {
             if (!event) return { polls: [] };
 
             const rawPolls = await this.prisma.poll.findMany({
-                where: { eventId: event.id, deletedAt: null, isVoteEnd: false },
+                where: { eventId: event.id, deletedAt: null, isVoteEnd: false, publishedAt: { lte: new Date() } },
                 include: { event: true },
             });
 
@@ -78,10 +78,22 @@ export class PollService {
      */
     public async myVotedPolls(userId: string, isGuest: boolean, logs?: boolean): Promise<{ polls: IPoll[] }> {
         try {
+
+            if(isGuest){
+                const rawPolls = await this.prisma.poll.findMany({
+                    where: {
+                        deletedAt: null,
+                        votes: { some: { guestId: userId, deletedAt: null } },
+                    },
+                    include: { votes: true, event: true },
+                });
+
+                return { polls: this.formatPolls(rawPolls, logs) };
+            }
+
             const rawPolls = await this.prisma.poll.findMany({
                 where: {
                     deletedAt: null,
-                    isVoteEnd: true,
                     votes: { some: { userId: userId, deletedAt: null } },
                 },
                 include: { votes: true, event: true },
