@@ -23,6 +23,7 @@ export interface IEvent {
   dataLogs?: any;
   polls?: IPoll[];
   whitelist?: IWhitelistUser[];
+  guests?: IGuest[];
 }
 
 export interface IPoll {
@@ -74,6 +75,7 @@ export interface IWhitelistUser {
   updatedAt: Date;
   deletedAt?: Date;
   dataLogs?: any;
+  user: IUser;
 }
 
 export interface IGuest {

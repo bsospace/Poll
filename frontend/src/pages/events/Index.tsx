@@ -45,11 +45,11 @@ export default function EventsList() {
   );
 
   return (
-    <div className="max-w-4xl p-6 mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold">Manage Events</h2>
-        <div className="flex items-center gap-4">
-          <div className="relative w-64">
+    <div className="md:p-6">
+      <div className="flex flex-wrap items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold mb-4 md:mb-0">Manage Events</h2>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative w-full max-w-2xl">
             <Input
               type="text"
               placeholder="Search events..."

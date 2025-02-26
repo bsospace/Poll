@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import EventDetails from "./EventDetails";
 import Participants from "./Participants";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { axiosInstance } from "@/lib/Utils";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle, ChevronLeft, Save } from "lucide-react";
 
@@ -17,7 +17,7 @@ export default function CreateEvent() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [whitelistInput, setWhitelistInput] = useState("");
-  const [initialWhitelistPoints, setInitialWhitelistPoints] = useState(0);
+  const [initialWhitelistPoints, setInitialWhitelistPoints] = useState(1);
   const navigate = useNavigate();
 
   interface WhitelistEntry {
@@ -29,7 +29,7 @@ export default function CreateEvent() {
 
   const [guest, setGuest] = useState<IGuest[] | null>(null);
   const [guestNumber, setGuestNumber] = useState(0);
-  const [guestPoint, setGuestPoint] = useState(0);
+  const [guestPoint, setGuestPoint] = useState(1);
 
   const [activeTab, setActiveTab] = useState("details");
   const [showDialog, setShowDialog] = useState(false);
@@ -109,8 +109,8 @@ export default function CreateEvent() {
       updatedAt: new Date(),
     }));
 
-    setGuest(newGuests);
-    toast.success(`Generated ${guestNumber} guest code${guestNumber > 1 ? 's' : ''}`);
+    setGuest([...(guest || []), ...newGuests]);
+    toast.success(`Generated ${guestNumber} guest key${guestNumber > 1 ? 's' : ''}`);
   };
 
   const handleUpdateWhitelistPoint = (email: string, point: number) => {
@@ -127,6 +127,10 @@ export default function CreateEvent() {
       }
       setActiveTab("participants");
     } else if (activeTab === "participants") {
+      if (whitelist.length === 0 && (!guest || guest.length === 0)) {
+        toast.error("Please add at least one participant or generate guest codes");
+        return;
+      }
       setActiveTab("summary");
     }
   };
@@ -141,6 +145,18 @@ export default function CreateEvent() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+
+    if (!name.trim()) {
+      toast.error("Please enter the event name");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!guest && whitelist.length === 0) {
+      toast.error("Please add at least one participant or generate guest codes");
+      setIsSubmitting(false);
+      return;
+    }
 
     const payload = {
       name,
@@ -167,26 +183,58 @@ export default function CreateEvent() {
     }
   };
 
+  const isValidating = useRef(false);
+
+  const handleTab = (tab: string) => {
+    // Prevent duplicate validations
+    if (isValidating.current) return;
+    
+    try {
+      isValidating.current = true;
+      
+      if (activeTab === "details" && (tab === "participants" || tab === "summary")) {
+        if (!name.trim()) {
+          toast.error("Please enter the event name");
+          return;
+        }
+      }
+  
+      if (activeTab === "participants" && tab === "summary") {
+        if (whitelist.length === 0 && (!guest || guest.length === 0)) {
+          toast.error("Please add at least one participant or generate guest codes");
+          return;
+        }
+      }
+  
+      setActiveTab(tab);
+    } finally {
+      // Use setTimeout to prevent rapid successive calls
+      setTimeout(() => {
+        isValidating.current = false;
+      }, 100);
+    }
+  };
+
   return (
-    <div className="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-md">
+    <div className="max-w-4xl md:p-6 mx-auto md:bg-white md:rounded-lg md:shadow-md">
       <h1 className="mb-2 text-3xl font-bold">Create New Event</h1>
       <p className="mb-6 text-gray-500">Complete all steps to create your event</p>
 
       <Progress value={getProgress()} className="h-2 mb-6" />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="details" className="flex items-center gap-2" disabled={isSubmitting}>
+      <Tabs value={activeTab} onValueChange={(value) => handleTab(value)} className="w-full">
+        <TabsList className="grid w-full md:grid-cols-3 mb-8 h-fit grid-cols-1 gap-2">
+          <TabsTrigger value="details" className="flex justify-start md:justify-center gap-2" disabled={isSubmitting}>
             <span className={`flex items-center justify-center w-6 h-6 rounded-full ${activeTab === "details" ? "bg-primary text-white" : "bg-primary/10"
               }`}>1</span>
             Event Details
           </TabsTrigger>
-          <TabsTrigger value="participants" className="flex items-center gap-2" disabled={isSubmitting}>
+          <TabsTrigger value="participants" className="flex justify-start md:justify-center gap-2" disabled={isSubmitting}>
             <span className={`flex items-center justify-center w-6 h-6 rounded-full ${activeTab === "participants" ? "bg-primary text-white" : "bg-primary/10"
               }`}>2</span>
             Participants
           </TabsTrigger>
-          <TabsTrigger value="summary" className="flex items-center gap-2" disabled={isSubmitting}>
+          <TabsTrigger value="summary" className="flex justify-start md:justify-center gap-2" disabled={isSubmitting}>
             <span className={`flex items-center justify-center w-6 h-6 rounded-full ${activeTab === "summary" ? "bg-primary text-white" : "bg-primary/10"
               }`}>3</span>
             Review & Create
@@ -276,27 +324,27 @@ export default function CreateEvent() {
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevTab}
-                    className="gap-2"
-                    disabled={isSubmitting}
-                  >
-                    <ChevronLeft size={16} /> Back
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleSubmit}
-                    className="gap-2"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Creating..." : "Create Event"} <Save size={16} />
-                  </Button>
-                </div>
               </CardContent>
             </Card>
+            <div className="flex justify-between pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevTab}
+                className="gap-2"
+                disabled={isSubmitting}
+              >
+                <ChevronLeft size={16} /> Back
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                className="gap-2"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creating..." : "Create Event"} <Save size={16} />
+              </Button>
+            </div>
           </TabsContent>
         </div>
       </Tabs>

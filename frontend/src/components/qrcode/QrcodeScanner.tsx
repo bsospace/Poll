@@ -124,7 +124,7 @@ const QRScanner: React.FC<QRScannerProps> = ({ onResult }) => {
           <div className="absolute inset-0 z-10 pointer-events-none">
             <div className="absolute inset-0 border-[40px] sm:border-[60px] border-black/50 box-border rounded-2xl"></div>
             {scanning && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3/4 h-0.5 bg-blue-400 animate-scan"></div>
+              <div className="absolute top-1/2 left-0 transform w-full h-0.5 bg-blue-400 animate-scan"></div>
             )}
           </div>
 

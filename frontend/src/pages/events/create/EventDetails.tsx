@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, ChevronRightIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 interface EventDetailsProps {
     name: string;
@@ -30,7 +30,7 @@ const EventDetails = (
                             id="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. Annual Conference 2025"
+                            placeholder="e.g. Annual Conference"
                             className="h-12"
                         />
                     </div>
@@ -46,8 +46,9 @@ const EventDetails = (
                         />
                     </div>
 
+                </CardContent>
+            </Card>
                     <div className="flex justify-end pt-4">
-                        <ChevronRightIcon size={24} className="text-gray-500" />
                         <Button
                             type="button"
                             onClick={handleNextTab}
@@ -57,8 +58,6 @@ const EventDetails = (
                             <ChevronRight size={16} />
                         </Button>
                     </div>
-                </CardContent>
-            </Card>
         </div>
     );
 }

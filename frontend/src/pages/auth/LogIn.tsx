@@ -6,6 +6,7 @@ import { Scan, LogIn, Shield, Vote } from "lucide-react";
 import { useAuth } from "@/hooks/UseAuth";
 import { FaDiscord, FaGithub, FaGoogle } from "react-icons/fa";
 import QRScanner from "@/components/qrcode/QrcodeScanner";
+import { toast } from "sonner";
 import { config } from "@/config/Config";
 import {
   AlertDialog,
@@ -31,11 +32,54 @@ export function LoginPage() {
   }
 
   const handleQRCodeScanned = (result: QRCodeResult | null) => {
-    if (result) {
+    if (!result?.text) return;
+
+    let jsonText = result.text.trim(); // Remove leading/trailing spaces
+    let modified = false; // Track if we modified the JSON
+
+    try {
+      let parsedResult;
+
+      // First, try parsing normally (for correctly formatted JSON)
+      if (jsonText.startsWith("{") && jsonText.endsWith("}")) {
+        try {
+          parsedResult = JSON.parse(jsonText);
+        } catch {
+          // If parsing fails, try fixing unquoted keys
+          jsonText = jsonText.replace(/([{,])\s*(\w+)\s*:/g, '$1"$2":');
+          modified = true; // Mark as modified
+          parsedResult = JSON.parse(jsonText);
+        }
+      } else {
+        console.error("Invalid JSON format:", jsonText);
+        toast.error("Invalid QR code format. Please scan a valid QR code.");
+        return;
+      }
+
+      // If JSON parsing succeeds but "key" is missing, show a toast notification
+      if (parsedResult && typeof parsedResult === "object") {
+        if ("key" in parsedResult) {
+          console.log("QR Code Scanned:", parsedResult);
+          setAccessKey(parsedResult.key);
+        } else if (modified) {
+          console.error("Modified JSON, but 'key' attribute is missing:", jsonText);
+          toast.error("QR code is invalid. Missing 'key' attribute.");
+        } else {
+          console.error("Valid JSON, but 'key' attribute is missing:", jsonText);
+          toast.error("The scanned QR code is missing the 'key' attribute.");
+        }
+      } else {
+        console.error("Invalid QR code format after parsing:", jsonText);
+        toast.error("Invalid QR code data. Please scan a valid QR code.");
+      }
+    } catch (error) {
+      console.error("Error parsing QR code:", error, "Received text:", result.text);
+      toast.error("Error reading the QR code. Please try again.");
+    } finally {
       setShowScanner(false);
-      setAccessKey(result.text);
     }
   };
+  
 
   const handleGuestAccess = () => {
     if (!accessKey) return;
@@ -163,7 +207,7 @@ export function LoginPage() {
                         <span className="font-medium">Scan QR</span>
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="w-full h-full md:h-fit md:w-fit md:rounded-3xl border-none shadow-2xl bg-white/95 backdrop-blur-xl p-6">
+                    <AlertDialogContent className="min-w-[432px] max-w-screen w-full h-full md:h-fit md:w-fit md:rounded-3xl border-none shadow-2xl bg-white/95 backdrop-blur-xl p-6">
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-2xl font-bold text-center text-orange-600">
                           Scan QR Code
