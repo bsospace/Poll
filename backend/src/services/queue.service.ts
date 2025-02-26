@@ -96,7 +96,7 @@ class QueueService {
                             // Deduct points only for non-public polls
                             if (isGuest) {
                                 const guest = await tx.guest.findUnique({
-                                    where: { id: userId },
+                                    where: { id: userId, eventId: poll.eventId },
                                     select: { point: true },
                                 });
 
@@ -105,7 +105,7 @@ class QueueService {
                                 if (guest.point < points) throw new Error(`Guest ${userId} does not have enough points.`);
 
                                 await tx.guest.updateMany({
-                                    where: { id: userId },
+                                    where: { id: userId ,eventId: poll.eventId },
                                     data: { point: { decrement: points } },
                                 });
                             } else {
