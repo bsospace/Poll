@@ -77,16 +77,31 @@ export class R2Service {
      * Retrieves an image by key
      */
     public async getImageByKey(key: string) {
-        return await this.prisma.image.findUnique({
-            where: { key },
-        });
+        try {
+            return await this.prisma.image.findUnique({
+                where: { key },
+            });
+        }
+        catch (error) {
+            console.error("Error retrieving image by key:", error);
+            throw new Error("Failed to retrieve image.");
+        }
     }
 
     public async maskeHasUpload(key: string) {
-        return await this.prisma.image.update({
-            where: { key },
-            data: { hasUpload: true },
-        });
+        try {
+            const image = await this.prisma.image.findUnique({ where: { key } });
+            if (image) {
+                await this.prisma.image.update({
+                    where: { key },
+                    data: { hasUpload: true },
+                });
+            }
+        }
+        catch (error) {
+            console.error("Error updating image hasUpload:", error);
+            throw new Error("Failed to update image.");
+        }
     }
 
     /**
