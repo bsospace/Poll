@@ -42,6 +42,7 @@ router.get('/public-polls', authMiddleware.validateMulti, pollController.publicP
 router.get('/my-voted-polls', authMiddleware.validateMulti, pollController.myVotedPolls);
 router.get('/:pollId', getPollByIdValidator(), authMiddleware.validateMulti, pollController.getPoll);
 router.post('/:pollId/vote', authMiddleware.validateMulti, voteController.vote);
+router.get('/:pollId/result', getAllPollValidator(), authMiddleware.validateMulti, pollController.getPollResults);
 
 export {
     router as pollRouters
