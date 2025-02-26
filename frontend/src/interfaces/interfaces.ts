@@ -12,6 +12,7 @@ export interface IUser {
 }
 
 export interface IEvent {
+  data: any;
   id: string;
   name: string;
   description?: string;
@@ -21,6 +22,7 @@ export interface IEvent {
   deletedAt?: Date;
   dataLogs?: any;
   polls?: IPoll[];
+  whitelist?: IWhitelistUser[];
 }
 
 export interface IPoll {
@@ -57,13 +59,17 @@ export interface IOption {
   votes: IVote[];
   dataLogs?: any;
   restricts?: string;
+  userProfile?: string;
 }
 
 export interface IWhitelistUser {
+  user: any;
+  email: string;
   id: string;
   userId: string;
   eventId?: string;
   point: number;
+  event: IEvent;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;

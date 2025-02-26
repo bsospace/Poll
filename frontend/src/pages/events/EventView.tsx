@@ -13,7 +13,7 @@ export default function EventView() {
         data: IEvent;
     }
 
-    const { id } = useParams(); // ดึง 'id' จาก URL
+    const { id } = useParams();
     const [event, setEvent] = useState<IEvent | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
