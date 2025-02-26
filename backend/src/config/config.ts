@@ -49,4 +49,5 @@ export const envConfig = {
   cloudflareR2AccessKey: requireEnv('CLOUDFLARE_R2_ACCESS_KEY'),
   cloudflareR2AccountId: requireEnv('CLOUDFLARE_R2_ACCOUNT_ID'),
   cloudflareR2BucketName: requireEnv('CLOUDFLARE_R2_BUCKET_NAME'),
+  cloudflareR2Url: requireEnv('CLOUDFLARE_R2_URL'),
 };
