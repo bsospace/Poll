@@ -17,7 +17,6 @@ export default function PollBannerUploader({ bannerPoll, onUpload }: PollBannerU
       <div className="relative">
         {bannerPoll ? (
           <div className="relative group">
-            {JSON.stringify(bannerPoll)}
             <img src={bannerPoll.url} alt="Poll Banner" className="object-cover w-full h-40 rounded-md" />
             <div className="absolute inset-0 flex items-center justify-center transition-opacity bg-black rounded-md opacity-0 bg-opacity-40 group-hover:opacity-100">
               <label htmlFor="poll-banner-upload" className="cursor-pointer">

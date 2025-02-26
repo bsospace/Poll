@@ -21,7 +21,6 @@ export default function PollOption({
 }: PollOptionProps) {
   return (
     <Card className="p-4">
-      {JSON.stringify(option)}
       <div className="flex items-start gap-4">
         <label htmlFor={`file-input-${index}`} className="block cursor-pointer">
           {option.banner ? (
