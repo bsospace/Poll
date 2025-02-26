@@ -10,6 +10,8 @@ import CreateEvent from '@/pages/events/create/Index'
 import PollDetails from '@/pages/polls/Index'
 import EventView from '@/pages/events/EventView'
 import CreatePoll from '@/pages/events/poll'
+import PollBannerUploader from '@/pages/events/poll/PollBannerUploader'
+import PollResult from '@/pages/events/PollResult'
 
 
 const publicRoutes = [
@@ -25,6 +27,7 @@ const privateRoutes = [
     {path: ROUTES.POLL.VIEW, element: <PollDetails />},
     {path: ROUTES.EVENT.VIEW, element: <EventView />},
     {path: ROUTES.EVENT.CREATE_POLL, element: <CreatePoll />},
+    {path: ROUTES.POLL.RESULT, element: <PollResult />}
 //   { path: ROUTES.HOME, element: <HomePage /> },
 //   { path: ROUTES.PROFILE, element: <ProfilePage /> },
 //   { path: ROUTES.CALENDAR, element: <CalendarPage /> },
