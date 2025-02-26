@@ -15,6 +15,7 @@ import { CryptoService } from "../services/crypto.service";
 import AuthMiddleware from "../middlewares/auth.middleware";
 import { PollService } from "../services/poll.service";
 import multer from "multer";
+import { upload } from "../utils/multerConfig.util";
 
 const router = Router();
 
@@ -34,17 +35,6 @@ const authMiddleware = new AuthMiddleware(
   authService
 );
 
-// ตั้งค่า storage ของ Multer เพื่ออัปโหลดไฟล์ไปยัง folder 'uploads'
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads"); // ตั้งให้ไฟล์ไปอยู่ใน folder 'uploads'
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname); // ใช้ชื่อไฟล์เดิม
-  },
-});
-
-const upload = multer({ storage: storage });
 
 const eventController = new EventController(eventService);
 const pollController = new PollController(pollService);
@@ -70,13 +60,13 @@ router.post(
   getEventByIdValidator(),
   authMiddleware.validateUserOnly,
   validateRequest,
+  upload.any(),
   pollController.createPollByEventId
 );
 
 router.post(
   "/upload",
   authMiddleware.validateUserOnly,
-  upload.any(),
   pollController.uploadFile
 );
 
