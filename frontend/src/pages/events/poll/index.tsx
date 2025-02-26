@@ -3,104 +3,132 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash, Image, MoreVertical, XCircle } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useParams } from "react-router-dom";
 import { axiosInstance } from "@/lib/Utils";
-import { IEvent, IOption, IWhitelistUser, IPoll } from "@/interfaces/interfaces";
+import { IEvent, IGuest, IOption, IWhitelistUser } from "@/interfaces/interfaces";
+import PollBannerUploader from "./PollBannerUploader";
+import PollOptionsList from "./PollOptionsList";
+import { CalendarClock, Loader2, Save, Users } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
+
+export interface Option {
+  id: string;
+  text: string;
+  description: string;
+  banner: string;
+}
 
 export default function CreatePoll() {
   const { id } = useParams();
+
   const [question, setQuestion] = useState("");
   const [description, setDescription] = useState("");
   const [bannerPoll, setBannerPoll] = useState<string>("");
-  const [options, setOptions] = useState<Partial<IOption>[]>([
-    { id: "default", text: "", banner: "", description: "", restricts: undefined },
-  ]);
+  const [event, setEvent] = useState<IEvent | null>(null);
   const [whitelist, setWhitelist] = useState<IWhitelistUser[]>([]);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [guests, setGuests] = useState<IGuest[]>([]);
+  const [startVoteAt, setStartVoteAt] = useState<string>("");
+  const [endVoteAt, setEndVoteAt] = useState<string>("");
 
-  const fetchWhitelist = async () => {
-    if (id) {
-      try {
-        const response = await axiosInstance.get<IEvent>(`/events/${id}`);
-        setWhitelist(response.data.data.whitelist);
-      } catch (error) {
-        setEmailError("Failed to fetch event details. Please try again later.");
-        console.error("Error fetching event:", error);
-      }
-    }
-  };
+  const [options, setOptions] = useState<{ id: string; text: string; description: string; banner: string }[]>([
+    { id: uuidv4(), text: "", banner: "", description: "" },
+  ]);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [errors, setErrors] = useState<{ question?: string; options?: string; startVoteAt?: string; endVoteAt?: string }>({});
+
+  // Prevent accidental page refresh or navigation
   useEffect(() => {
-    fetchWhitelist();
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (question || description || bannerPoll || options.some(opt => opt.text || opt.description || opt.banner)) {
+        event.preventDefault();
+        event.returnValue = ""; // Browser-required return value
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [question, description, bannerPoll, options]);
+
+  // Fetch event data (would need to be implemented)
+  useEffect(() => {
+    if (id) {
+
+      const fetchEvent = async () => {
+        try {
+          const response = await axiosInstance.get(`/events/${id}`);
+          setEvent(response.data.data);
+          setWhitelist(response.data.data.whitelist);
+          setGuests(response.data.data.guests);
+        } catch {
+          toast.error("Failed to fetch event data");
+        }
+      }
+
+      fetchEvent();
+    }
   }, [id]);
 
+  const validateForm = () => {
+    const newErrors: { question?: string; options?: string } = {};
+
+    if (!question.trim()) newErrors.question = "Poll question is required.";
+    if (options.length === 0) {
+      newErrors.options = "At least one option is required.";
+    } else if (options.some(option => !option.text?.trim())) {
+      newErrors.options = "Each option must have text.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleAddOption = () => {
-    setOptions([...options, { id: crypto.randomUUID(), text: "", banner: "", description: "", restricts: undefined }]);
+    setOptions([...options, { id: uuidv4(), text: "", banner: "", description: "" }]);
   };
 
   const handleRemoveOption = (id: string) => {
-    setOptions(options.filter(option => option.id !== id));
-  };
-
-  const handleBannerUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newOptions = [...options];
-        newOptions[index].banner = reader.result as string;
-        setOptions(newOptions);
-      };
-      reader.readAsDataURL(file);
+    if (options.length > 1) {
+      setOptions(options.filter(option => option.id !== id));
+    } else {
+      toast.error("At least one option is required.");
     }
   };
 
   const handleDuplicateOption = (index: number) => {
     const optionToDuplicate = options[index];
-    const duplicatedOption: Partial<IOption> = {
+    const newOption = {
       ...optionToDuplicate,
-      id: crypto.randomUUID(),
+      id: uuidv4(),
+      text: `${optionToDuplicate.text} (copy)`
     };
-    const newOptions = [...options];
-    newOptions.splice(index + 1, 0, duplicatedOption);
-    setOptions(newOptions);
+    setOptions([...options.slice(0, index + 1), newOption, ...options.slice(index + 1)]);
   };
 
-  const handleRestrictOption = (index: number) => {
-    const newOptions = [...options];
-    newOptions[index].restricts = newOptions[index].restricts ? undefined : "";
-    setOptions(newOptions);
+  const handleOptionChange = (idx: number, field: keyof Option, value: string) => {
+    setOptions((prevOptions) => {
+      const newOptions = [...prevOptions];
+      newOptions[idx][field] = value;
+      return newOptions;
+    });
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      const email = options[index].restricts;
-      if (email && !validateEmail(email)) {
-        setEmailError("Email is not in the whitelist.");
-      } else {
-        setEmailError(null);
-        const user = whitelist.find((user) => user.user.email === email);
-        if (user) {
-          setOptions((prevOptions) => {
-            const newOptions = [...prevOptions];
-            newOptions[index].userProfile = user.user.avatar; // ใช้ avatar จาก IUser
-            return newOptions;
-          });
-        }
-      }
+  const handleOptionBannerUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setOptions((prevOptions) => {
+          const newOptions = [...prevOptions];
+          (newOptions[index] as Partial<IOption>).banner = reader.result as string;
+          return newOptions;
+        });
+      };
+      reader.readAsDataURL(file);
+      e.target.value = ""; // Reset input file value
     }
-  };
-
-  const validateEmail = (email: string): boolean => {
-    return whitelist.some((whitelist) => whitelist.user.email === email && whitelist.eventId === id);
-  };
-
-  const handleEmailChange = (index: number, email: string) => {
-    const newOptions = [...options];
-    newOptions[index].restricts = email;
-    setOptions(newOptions);
   };
 
   const handlePollBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,38 +136,115 @@ export default function CreatePoll() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setBannerPoll(reader.result as string); // เก็บไฟล์ banner ใน state ของ Poll
+        setBannerPoll(reader.result as string);
       };
       reader.readAsDataURL(file);
+      e.target.value = ""; // Reset input file value
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!validateForm()) return;
+    setIsSaving(true);
+    try {
+      await axiosInstance.post("/polls/draft", {
+        eventId: id,
+        question,
+        description,
+        bannerPoll,
+        options,
+      });
+
+      toast.success("Draft saved successfully");
+    } catch (error: unknown) {
+      console.error("Error:", error);
+
+      if (typeof error === "object" && error !== null && "response" in error) {
+        const err = error as { response: { data?: { message?: string; error?: string } } };
+
+        const errorMessage = err.response?.data?.message ?? "An unexpected error occurred.";
+        const errorDescription = err.response?.data?.error ?? "";
+
+        toast.error(errorMessage, { description: errorDescription });
+
+      } else {
+        toast.error("An unexpected error occurred.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  const handlePublish = async () => {
+    if (!validateForm()) return;
+    setIsPublishing(true);
+
+    try {
+      // **จัดรูปแบบข้อมูลให้ตรงกับ Backend**
+      const pollData = {
+        question,
+        description,
+        startVoteAt,
+        endVoteAt,
+        publishAt: new Date().toISOString(),
+        options,
+      };
+
+      const payload = {
+        polls: [pollData], // **Backend คาดหวัง `polls` เป็น array**
+      };
+
+      const response = await axiosInstance.post(`/event/${id}/polls/create`, payload, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 200) {
+        toast.success("Poll published successfully!");
+      } else {
+        toast.error("Failed to publish poll. Please try again.");
+      }
+    } catch (error: unknown) {
+      console.error("Error publishing poll:", error);
+
+      if (typeof error === "object" && error !== null && "response" in error) {
+        const err = error as { response: { data?: { message?: string; error?: string } } };
+
+        const errorMessage = err.response?.data?.message ?? "An unexpected error occurred.";
+        const errorDescription = err.response?.data?.error ?? "";
+
+        toast.error(errorMessage, { description: errorDescription });
+      } else {
+        toast.error("An unexpected error occurred.");
+      }
+    } finally {
+      setIsPublishing(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h1 className="mb-4 text-2xl font-bold">Create Poll</h1>
+    <div className="max-w-3xl p-6 mx-auto bg-white rounded-lg shadow-md">
+      <h1 className="mb-6 text-2xl font-bold">Create Poll</h1>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">Poll Banner</label>
-        <div className="relative">
-          {bannerPoll ? (
-            <div className="relative group">
-              <img src={bannerPoll} alt="Poll Banner" className="w-full h-40 object-cover rounded-md" />
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                <Button variant="ghost" className="text-white">Change Banner</Button>
-              </div>
-            </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Image size={24} className="mb-2 text-gray-400" />
-                <p className="text-sm text-gray-500">Upload Poll Banner</p>
-              </div>
-            </label>
-          )}
-          <input type="file" accept="image/*" className="hidden" onChange={handlePollBannerUpload} id="poll-banner-upload" />
-        </div>
-      </div>
+      {/*  Event Details Section */}
+      {event && (
+        <Card className="mb-6 bg-gray-50">
+          <CardHeader>
+            <p className="text-sm font-semibold">📌 {event.name}</p>
+            <p className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+              <Users size={16} /> Whitelisted Users: {whitelist.length + (guests && guests.length || 0)}
+            </p>
+          </CardHeader>
+        </Card>
+      )}
 
+      {/* Poll Banner Upload */}
+      <PollBannerUploader
+        bannerPoll={bannerPoll}
+        onUpload={handlePollBannerUpload}
+      />
+
+      {/* Poll Details */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Poll Details</CardTitle>
@@ -147,162 +252,101 @@ export default function CreatePoll() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Question</label>
-              <Input 
-                placeholder="Enter poll question" 
-                value={question} 
-                onChange={(e) => setQuestion(e.target.value)} 
+              <label className="block mb-1 text-sm font-medium">
+                Question <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="Enter poll question"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className={errors.question ? "border-red-500" : ""}
               />
+              {errors.question && (
+                <p className="mt-1 text-xs text-red-500">{errors.question}</p>
+              )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <Textarea 
-                placeholder="Enter poll description" 
-                value={description} 
-                onChange={(e) => setDescription(e.target.value)} 
+              <label className="block mb-1 text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Enter poll description (optional)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 className="min-h-24"
               />
+            </div>
+            {/* 🕘 Start Vote Time */}
+            <div>
+              <label className="flex items-center gap-2 mb-1 text-sm font-medium">
+                <CalendarClock size={16} /> Start Vote Time *
+              </label>
+              <Input type="datetime-local" value={startVoteAt} onChange={(e) => setStartVoteAt(e.target.value)} />
+              {errors.startVoteAt && <p className="mt-1 text-xs text-red-500">{errors.startVoteAt}</p>}
+            </div>
+
+            {/* 🕛 End Vote Time */}
+            <div>
+              <label className="flex items-center gap-2 mb-1 text-sm font-medium">
+                <CalendarClock size={16} /> End Vote Time *
+              </label>
+              <Input type="datetime-local" value={endVoteAt} onChange={(e) => setEndVoteAt(e.target.value)} />
+              {errors.endVoteAt && <p className="mt-1 text-xs text-red-500">{errors.endVoteAt}</p>}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold mb-2">Poll Options</h2>
-        <div className="space-y-4">
-          {options.map((option, index) => (
-            <div key={option.id} className="flex gap-4">
-              <Card className="relative flex-1 p-4">
-                <div className="flex items-start gap-4">
-                  <div className="shrink-0">
-                    <label htmlFor={`file-input-${index}`} className="cursor-pointer block">
-                      {option.banner ? (
-                        <div className="relative group">
-                          <img src={option.banner} alt="Option" className="w-24 h-24 object-cover rounded-md" />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity rounded-md">
-                            <Image size={16} className="text-white" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="w-24 h-24 flex items-center justify-center border border-dashed rounded-md text-gray-400 hover:bg-gray-50">
-                          <Image size={20} />
-                        </div>
-                      )}
-                    </label>
-                    <input 
-                      type="file" 
-                      id={`file-input-${index}`} 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={(e) => handleBannerUpload(index, e)} 
-                    />
-                  </div>
+      {/* Poll Options */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Poll Options</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PollOptionsList
+            options={options}
+            onAddOption={handleAddOption}
+            onChangeOption={handleOptionChange}
+            onRemoveOption={handleRemoveOption}
+            onDuplicateOption={handleDuplicateOption}
+            onBannerUpload={handleOptionBannerUpload}
+          />
+          {errors.options && (
+            <p className="mt-2 text-xs text-red-500">{errors.options}</p>
+          )}
+        </CardContent>
+      </Card>
 
-                  <div className="flex-1">
-                    <Input 
-                      placeholder="Option text" 
-                      value={option.text} 
-                      onChange={(e) => {
-                        const newOptions = [...options];
-                        newOptions[index].text = e.target.value;
-                        setOptions(newOptions);
-                      }} 
-                      className="mb-2"
-                    />
-                    <Textarea 
-                      placeholder="Option description (optional)"
-                      value={option.description || ""} 
-                      onChange={(e) => {
-                        const newOptions = [...options];
-                        newOptions[index].description = e.target.value;
-                        setOptions(newOptions);
-                      }}
-                      className="text-sm min-h-16"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical size={16} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleDuplicateOption(index)}>
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleRestrictOption(index)}>
-                          Restrict
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {options.length > 1 && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        className="text-red-500 hover:bg-red-50 hover:text-red-600" 
-                        onClick={() => handleRemoveOption(options.find((o) => o.id === option.id)?.id as string)}
-                      >
-                        <Trash size={16} />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {option.restricts !== undefined && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-md relative">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
-                      onClick={() => {
-                        const newOptions = [...options];
-                        newOptions[index].restricts = undefined;
-                        setOptions(newOptions);
-                      }}
-                    >
-                      <XCircle size={14} />
-                    </Button>
-
-                    <p className="text-xs font-medium mb-2">Email Restriction</p>
-                    <Input
-                      type="email"
-                      placeholder="Enter voter email"
-                      value={option.restricts || ""}
-                      onChange={(e) => {
-                        const newOptions = [...options];
-                        newOptions[index].restricts = e.target.value;
-                        setOptions(newOptions);
-                      }}
-                      className="text-sm"
-                    />
-                    {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
-
-                    {option.restricts && option.userProfile && (
-                      <div className="flex gap-2 items-center mt-2">
-                        <img src={option.userProfile} alt="Profile" className="w-6 h-6 rounded-full" />
-                        <span className="text-xs text-gray-600">{option.restricts}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Card>
-            </div>
-          ))}
-        </div>
+      {/* Save Draft & Publish Buttons */}
+      <div className="grid grid-cols-2 gap-4">
+        <Button
+          onClick={handleSaveDraft}
+          disabled={isSaving || isPublishing}
+          variant="outline"
+          className="w-full"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 size={16} className="mr-2 animate-spin" /> Saving...
+            </>
+          ) : (
+            <>
+              <Save size={16} className="mr-2" /> Save Draft
+            </>
+          )}
+        </Button>
+        <Button
+          onClick={handlePublish}
+          disabled={isSaving || isPublishing}
+          className="w-full"
+        >
+          {isPublishing ? (
+            <>
+              <Loader2 size={16} className="mr-2 animate-spin" /> Publishing...
+            </>
+          ) : (
+            "Publish Poll"
+          )}
+        </Button>
       </div>
-
-      <Button 
-        onClick={handleAddOption} 
-        variant="outline" 
-        className="mb-6 w-full flex items-center justify-center gap-2 py-5 border-dashed"
-      >
-        <Plus size={16} /> Add Option
-      </Button>
-
-      <Button className="w-full py-6 text-base font-medium">Create Poll</Button>
     </div>
   );
-};
+}
