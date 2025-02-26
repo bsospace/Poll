@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Option } from ".";
 
 interface PollOptionProps {
-  option: { id: string; text: string; description: string; banner: string; restricts?: string };
+  option: { id: string; text: string; description: string; banner: string; url: string, restricts?: string };
   index: number;
   onChange: (index: number, field: keyof Option, value: string) => void;
   onRemove: (id: string) => void;
@@ -21,10 +21,11 @@ export default function PollOption({
 }: PollOptionProps) {
   return (
     <Card className="p-4">
+      {JSON.stringify(option)}
       <div className="flex items-start gap-4">
         <label htmlFor={`file-input-${index}`} className="block cursor-pointer">
           {option.banner ? (
-            <img src={option.banner} alt="Option" className="object-cover w-24 h-24 rounded-md" />
+            <img src={option.url} alt="Option" className="object-cover w-24 h-24 rounded-md" />
           ) : (
             <div className="flex items-center justify-center w-24 h-24 text-gray-400 border border-dashed rounded-md hover:bg-gray-50">
               <Image size={20} />

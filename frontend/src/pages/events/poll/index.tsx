@@ -3,14 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { axiosInstance } from "@/lib/Utils";
-import { IEvent, IGuest, IOption, IWhitelistUser } from "@/interfaces/interfaces";
+import { IEvent, IGuest, IWhitelistUser } from "@/interfaces/interfaces";
 import PollBannerUploader from "./PollBannerUploader";
 import PollOptionsList from "./PollOptionsList";
 import { CalendarClock, Loader2, Save, Users } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { preUploadImage } from "@/lib/R2";
 
 export interface Option {
   id: string;
@@ -31,14 +32,21 @@ export default function CreatePoll() {
   const [startVoteAt, setStartVoteAt] = useState<string>("");
   const [endVoteAt, setEndVoteAt] = useState<string>("");
 
-  const [options, setOptions] = useState<{ id: string; text: string; description: string; banner: string }[]>([
-    { id: uuidv4(), text: "", banner: "", description: "" },
+  const [bannerPollImage, setBannerPollImage] = useState<{
+    key: string;
+    url: string;
+  } | null>(null);
+
+  const [options, setOptions] = useState<{ id: string; text: string; description: string; banner: string, url: string }[]>([
+    { id: uuidv4(), text: "", banner: "", description: "", url: "" },
   ]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [errors, setErrors] = useState<{ question?: string; options?: string; startVoteAt?: string; endVoteAt?: string }>({});
 
+  const navigate = useNavigate();
+  
   // Prevent accidental page refresh or navigation
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -71,6 +79,42 @@ export default function CreatePoll() {
     }
   }, [id]);
 
+  /** 🎨 Handle Poll Banner Upload */
+  const handlePollBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBannerPoll(URL.createObjectURL(file));
+      const preUpload = await preUploadImage(file);
+
+      if (preUpload) {
+        setBannerPollImage((prev) => {
+          return {
+            ...prev,
+            key: preUpload.key,
+            url: preUpload.url
+          }
+        });
+
+      }
+    }
+  }
+
+  /** 🎨 Handle Option Banner Upload */
+  const handleOptionBannerUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const uploadedKey = await preUploadImage(file);
+      if (uploadedKey) {
+        setOptions((prevOptions) => {
+          const newOptions = [...prevOptions];
+          newOptions[index].banner = uploadedKey.key;
+          newOptions[index].url = uploadedKey.url;
+          return newOptions;
+        });
+      }
+    }
+  };
+
   const validateForm = () => {
     const newErrors: { question?: string; options?: string } = {};
 
@@ -86,7 +130,7 @@ export default function CreatePoll() {
   };
 
   const handleAddOption = () => {
-    setOptions([...options, { id: uuidv4(), text: "", banner: "", description: "" }]);
+    setOptions([...options, { id: uuidv4(), text: "", banner: "", url: "", description: "" }]);
   };
 
   const handleRemoveOption = (id: string) => {
@@ -115,33 +159,6 @@ export default function CreatePoll() {
     });
   };
 
-  const handleOptionBannerUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setOptions((prevOptions) => {
-          const newOptions = [...prevOptions];
-          (newOptions[index] as Partial<IOption>).banner = reader.result as string;
-          return newOptions;
-        });
-      };
-      reader.readAsDataURL(file);
-      e.target.value = ""; // Reset input file value
-    }
-  };
-
-  const handlePollBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBannerPoll(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      e.target.value = ""; // Reset input file value
-    }
-  };
 
   const handleSaveDraft = async () => {
     if (!validateForm()) return;
@@ -151,7 +168,7 @@ export default function CreatePoll() {
         eventId: id,
         question,
         description,
-        bannerPoll,
+        banner: bannerPollImage?.key,
         options,
       });
 
@@ -184,6 +201,7 @@ export default function CreatePoll() {
         question,
         description,
         startVoteAt,
+        banner: bannerPollImage?.key,
         endVoteAt,
         publishAt: new Date().toISOString(),
         options,
@@ -193,13 +211,15 @@ export default function CreatePoll() {
         polls: [pollData], // **Backend คาดหวัง `polls` เป็น array**
       };
 
-      const response = await axiosInstance.post(`/event/${id}/polls/create`, payload, {
+      const response = await axiosInstance.post(`/events/${id}/polls/create`, payload, {
         headers: {
           "Content-Type": "application/json",
         },
       });
 
       if (response.status === 200) {
+        navigate(`/events/${id}`);
+        
         toast.success("Poll published successfully!");
       } else {
         toast.error("Failed to publish poll. Please try again.");
@@ -240,7 +260,7 @@ export default function CreatePoll() {
 
       {/* Poll Banner Upload */}
       <PollBannerUploader
-        bannerPoll={bannerPoll}
+        bannerPoll={bannerPollImage}
         onUpload={handlePollBannerUpload}
       />
 

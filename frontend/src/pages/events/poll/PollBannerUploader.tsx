@@ -3,7 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Image } from "lucide-react";
 
 interface PollBannerUploaderProps {
-  bannerPoll: string;
+  bannerPoll: {
+    key: string;
+    url: string;
+  } | null;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -14,7 +17,8 @@ export default function PollBannerUploader({ bannerPoll, onUpload }: PollBannerU
       <div className="relative">
         {bannerPoll ? (
           <div className="relative group">
-            <img src={bannerPoll} alt="Poll Banner" className="object-cover w-full h-40 rounded-md" />
+            {JSON.stringify(bannerPoll)}
+            <img src={bannerPoll.url} alt="Poll Banner" className="object-cover w-full h-40 rounded-md" />
             <div className="absolute inset-0 flex items-center justify-center transition-opacity bg-black rounded-md opacity-0 bg-opacity-40 group-hover:opacity-100">
               <label htmlFor="poll-banner-upload" className="cursor-pointer">
                 <Button variant="ghost" className="text-white">Change Banner</Button>
