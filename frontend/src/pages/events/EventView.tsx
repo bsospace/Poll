@@ -149,7 +149,7 @@ export default function EventView() {
                                 ) : (
                                     <div className="grid gap-4">
                                         {event.polls.map((poll) => (
-                                            <Link to={`/event/${id}/polls/${poll.id}`} key={poll.id}>
+                                            <Link to={`/polls/${poll.id}/result`}>
                                                 <Card className="p-4 transition-all bg-white border cursor-pointer hover:border-orange-300 hover:shadow">
                                                     <h3 className="mb-2 text-lg font-medium">{poll.question}</h3>
                                                     <div className="flex items-center justify-between mt-4 text-sm text-gray-500">

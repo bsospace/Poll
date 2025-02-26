@@ -33,5 +33,6 @@ export const ROUTES = {
     BASE: '/polls',       
     CREATE: '/polls/create',
     VIEW: '/polls/:id',   
+    RESULT: '/polls/:id/result',
   }
 } as const;

@@ -27,6 +27,7 @@ export interface IEvent {
 }
 
 export interface IPoll {
+  poll: any;
   id: string;
   eventId?: string;
   userId: string;
@@ -61,6 +62,7 @@ export interface IOption {
   dataLogs?: any;
   restricts?: string;
   userProfile?: string;
+  points?: number;
 }
 
 export interface IWhitelistUser {
