@@ -1,9 +1,16 @@
 import { PollService } from "../services/poll.service";
 
 import { Request, Response, NextFunction } from "express";
+import { R2Service } from "../services/r2.services";
 
 export class PollController {
-  constructor(private pollService: PollService) {
+
+  private pollService: PollService;
+  private r2Service: R2Service;
+  constructor(pollService: PollService, r2Service: R2Service) {
+    
+    this.pollService= pollService;
+    this.r2Service = r2Service;
     this.getPoll = this.getPoll.bind(this);
     this.getPolls = this.getPolls.bind(this);
     this.myPolls = this.myPolls.bind(this);
@@ -250,49 +257,33 @@ export class PollController {
 
   public async createPollByEventId(req: Request, res: Response): Promise<any> {
     try {
-
-      // console.log(req);
-      
       const eventId = req.params.eventId;
-
       const user = req.user;
+      const { polls } = req.body;
 
-      const { polls } = req.body.poll;
+      console.log("Polls", polls);
 
-      const files = req.files as Express.Multer.File[];
+      JSON.stringify(polls);
 
-      // Check if user is authenticated
+      
       if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "Unauthorized",
-        });
+        return res.status(401).json({ success: false, message: "Unauthorized" });
       }
 
-      console.log(polls);
-      
-      // console.log("EventId: ",eventId,"Polls: ", polls, "User: ", user.id,"Files: ", files);
-      
+      if (!polls || !Array.isArray(polls)) {
+        return res.status(400).json({ success: false, message: "Invalid polls data" });
+      }
 
-      const createdPolls = {}
-      // const createdPolls = await this.pollService.createPollByEventId(
-      //   polls,
-      //   eventId,
-      //   user.id,
-      //   files
-      // );
+      const createdPolls = await this.pollService.createPollByEventId(polls, eventId, user.id);
 
       return res.status(200).json({
         success: true,
-        message: "Event fetched successfully",
+        message: "Poll created successfully",
         data: createdPolls,
       });
     } catch (error) {
-      console.error("[ERROR] getEvents:", error);
-      return res.status(500).json({
-        message: "Something went wrong",
-        error: error || error,
-      });
+      console.error("[ERROR] createPollByEventId:", error);
+      return res.status(500).json({ message: "Something went wrong", error });
     }
   }
 
@@ -301,7 +292,7 @@ export class PollController {
       const { pollName, pollDescription } = req.body;
       const files = req.files as Express.Multer.File[];
     } catch (error) {
-      
+
     }
   }
 
