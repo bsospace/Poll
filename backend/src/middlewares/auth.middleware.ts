@@ -123,6 +123,8 @@ class AuthMiddleware {
   private async authenticateUser(req: Request): Promise<UserEx | null> {
     try {
       const token = this.extractToken(req);
+
+      console.log("token", token);
       if (!token) return null;
 
       const decode = this.cryptoService.decodeToken(token);
