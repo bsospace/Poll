@@ -1,11 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { DataLog, IPoll } from "../interface";
+import { envConfig } from "../config/config";
+import { R2Service } from "./r2.services";
 
 export class PollService {
     private prisma: PrismaClient;
+    private r2Service: R2Service;
 
-    constructor(prisma: PrismaClient) {
+    constructor(prisma: PrismaClient, r2Service: R2Service) {
         this.prisma = prisma;
+        this.r2Service = r2Service;
     }
 
     /**
@@ -49,7 +53,7 @@ export class PollService {
      */
     public async myPolls(userId: string, isGuest: boolean, logs?: boolean): Promise<{ polls: IPoll[] }> {
         try {
-            const event = await this.prisma.event.findFirst({
+            const event = await this.prisma.event.findMany({
                 where: isGuest
                     ? { guests: { some: { id: userId, deletedAt: null } } }
                     : { whitelist: { some: { userId: userId, deletedAt: null } } },
@@ -58,8 +62,12 @@ export class PollService {
             if (!event) return { polls: [] };
 
             const rawPolls = await this.prisma.poll.findMany({
-                where: { eventId: event.id, deletedAt: null, isVoteEnd: false },
-                include: { event: true },
+                where: {
+                    deletedAt: null,
+                    publishedAt: { lte: new Date() },
+                    eventId: { in: event.map(e => e.id) },
+                },
+                include: { votes: true, event: true },
             });
 
             return { polls: this.formatPolls(rawPolls, logs) };
@@ -74,10 +82,22 @@ export class PollService {
      */
     public async myVotedPolls(userId: string, isGuest: boolean, logs?: boolean): Promise<{ polls: IPoll[] }> {
         try {
+
+            if(isGuest){
+                const rawPolls = await this.prisma.poll.findMany({
+                    where: {
+                        deletedAt: null,
+                        votes: { some: { guestId: userId, deletedAt: null } },
+                    },
+                    include: { votes: true, event: true },
+                });
+
+                return { polls: this.formatPolls(rawPolls, logs) };
+            }
+
             const rawPolls = await this.prisma.poll.findMany({
                 where: {
                     deletedAt: null,
-                    isVoteEnd: true,
                     votes: { some: { userId: userId, deletedAt: null } },
                 },
                 include: { votes: true, event: true },
@@ -320,10 +340,9 @@ export class PollService {
     }
 
     public async createPollByEventId(
-      polls: IPoll[],
-      eventId: string,
-      userId: string,
-      files: Express.Multer.File[]
+        polls: IPoll[],
+        eventId: string,
+        userId: string,
     ): Promise<any> {
         try {
             return await this.prisma.$transaction(async (prisma) => {
@@ -337,7 +356,7 @@ export class PollService {
                         isPublic: eventId != null ? false : poll.isPublic,
                         canEdit: poll.canEdit,
                         isVoteEnd: false, // Default vote end status
-                        banner: poll.banner,
+                        banner: `${envConfig.cloudflareR2Url}/${poll.banner}`,
                         publishedAt: poll.publishedAt ? new Date(poll.publishedAt) : null,
                         startVoteAt: new Date(poll.startVoteAt),
                         endVoteAt: new Date(poll.endVoteAt),
@@ -365,10 +384,23 @@ export class PollService {
                             data: (poll.options || []).map((option) => ({
                                 pollId: relatedPoll.id,
                                 text: option.text,
-                                banner: option.banner,
+                                banner: `${envConfig.cloudflareR2Url}/${option.banner}`,
                                 description: option.description,
                             })),
                         });
+
+                        //  Step 3.1: Update banner images in R2 as "hasUpload"
+                        if (poll.banner) {
+                            await this.r2Service.maskeHasUpload(poll.banner);
+                        }
+
+                        await Promise.all(
+                            (poll.options || []).map(async (option) => {
+                                if (option.banner) {
+                                    await this.r2Service.maskeHasUpload(option.banner);
+                                }
+                            })
+                        );
 
                         // Step 4: Add vote restrictions
                         await Promise.all(
@@ -404,6 +436,4 @@ export class PollService {
             );
         }
     }
-
-    
 }

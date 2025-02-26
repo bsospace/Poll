@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { Option } from ".";
 
 interface PollOptionsListProps {
-    options: { id: string; text: string; description: string; banner: string }[];
+    options: { id: string; text: string; description: string; url: string, banner: string }[];
     onAddOption: () => void;
     onChangeOption: (index: number, field: keyof Option, value: string) => void;
     onRemoveOption: (id: string) => void;

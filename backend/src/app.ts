@@ -9,6 +9,8 @@ import { envConfig } from "./config/config";
 import http from "http";
 import { socketService } from "./services/socket.service";
 import { QueueService } from "./services/queue.service";
+import { deleteUnusedImagesCron } from "./crons/deleteUnusedImages";
+import cron from "node-cron";
 
 // โหลด Environment Variables
 dotenv.config();
@@ -71,6 +73,17 @@ const gracefulShutdown = async () => {
 // Listen for termination signals
 process.on("SIGINT", gracefulShutdown);
 process.on("SIGTERM", gracefulShutdown);
+
+
+cron.schedule("0 0 * * *", async () => {
+  console.log("⏳ Running scheduled task: Delete unused images...");
+  await deleteUnusedImagesCron();
+});
+
+// Start the cron job
+deleteUnusedImagesCron();
+
+console.log("✅ Cron jobs initialized.");
 
 // เริ่มต้น Prisma และ Queue Service
 startPrisma().then(() => {
