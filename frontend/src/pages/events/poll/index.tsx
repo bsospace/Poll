@@ -9,7 +9,7 @@ import { useParams } from "react-router-dom";
 import { axiosInstance } from "@/lib/Utils";
 import { IEvent, IOption, IWhitelistUser, IPoll } from "@/interfaces/interfaces";
 
-const CreatePoll = () => {
+export default function CreatePoll() {
   const { id } = useParams();
   const [question, setQuestion] = useState("");
   const [description, setDescription] = useState("");
@@ -306,5 +306,3 @@ const CreatePoll = () => {
     </div>
   );
 };
-
-export default CreatePoll;
