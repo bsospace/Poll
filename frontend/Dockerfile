@@ -1,29 +1,29 @@
-# base images
-FROM node:lts-slim AS Buildder
+# Stage 1: Build the React app
+FROM node:18 as build
 
-# set working directory
+# Set working directory inside the container
 WORKDIR /app
 
-# copy dependencies
-COPY package.json package-lock.json ./
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-# install dependencies
+# Install dependencies
 RUN npm install
 
-# copy source code
+# Copy all source files to the working directory
 COPY . .
 
-# build source code
+# Build the app for production
 RUN npm run build
 
-# nginx image
-FROM nginx:alpine AS production
+# Stage 2: Serve the app with Nginx
+FROM nginx:stable-alpine
 
-# serve the app to using a lightweight web server
-COPY --from=Buildder /app/dist /usr/share/nginx/html
+# Copy the built app from the previous stage to Nginx's web directory
+COPY --from=build /app/dist /usr/share/nginx/html
 
-#expose port
-EXPOSE 80
+# Copy custom Nginx configuration
+COPY .nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
-# start the server
+# Start Nginx server
 CMD ["nginx", "-g", "daemon off;"]
