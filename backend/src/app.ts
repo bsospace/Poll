@@ -21,7 +21,7 @@ const server = http.createServer(app); // ใช้ HTTP Server แทน Expres
 
 // CORS Options
 const corsOptions = {
-  origin: `${envConfig.nodeEnv === "production" ? envConfig.app.backendUrl : "http://localhost:5173"}`,
+  origin: `${envConfig.nodeEnv === "production" ? envConfig.app.frontendUrl : "http://localhost:5173"}`,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   exposedHeaders: ["Content-Length", "X-Response-Time"],
