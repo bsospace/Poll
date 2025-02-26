@@ -64,7 +64,6 @@ export interface IOption {
 }
 
 export interface IWhitelistUser {
-  user: any;
   email: string;
   id: string;
   userId: string;

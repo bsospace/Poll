@@ -1,14 +1,30 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/lib/Constants';
 import { useAuth } from '@/hooks/UseAuth';
 import { PageLayout } from '@/components/layouts/PageLayout';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export function PrivateRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
 
   const shouldRedirect = useMemo(() => !isAuthenticated && !isLoading, [isAuthenticated, isLoading]);
+
+  // Save the current path when redirecting to login, but only if not coming from logout
+  useEffect(() => {
+    if (shouldRedirect) {
+      // Check if this redirect is happening because of a logout
+      const isLogout = sessionStorage.getItem('isLogout') === 'true';
+      
+      if (!isLogout) {
+        localStorage.setItem('redirectPath', location.pathname + location.search);
+      } else {
+        // Clear the flag after using it
+        sessionStorage.removeItem('isLogout');
+      }
+    }
+  }, [shouldRedirect, location]);
 
   if (isLoading) {
     return (
@@ -18,7 +34,7 @@ export function PrivateRoute() {
     );
   }
 
-  if (shouldRedirect) {
+  if (shouldRedirect || !user?.isGuest) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 

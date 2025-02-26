@@ -50,7 +50,7 @@ export default function Home() {
         {/* My Polls Section */}
         <AccordionItem value="item-1">
           <AccordionTrigger>
-            <h2 className="text-3xl font-bold">Poll สำหรับคุณ</h2>
+            <h2 className="text-3xl font-bold">Polls for you</h2>
           </AccordionTrigger>
           <AccordionContent>
             {isLoadingMyPolls ? (
@@ -59,7 +59,7 @@ export default function Home() {
               </div>
             ) : myPolls && myPolls.length === 0 ? (
               <div className="text-center py-8">
-                <h2 className="text-2xl font-bold">ไม่มี Poll สำหรับคุณ</h2>
+                <h2 className="text-2xl font-bold">No polls for you</h2>
               </div>
             ) : (
               <Polls polls={myPolls} />
@@ -68,15 +68,14 @@ export default function Home() {
         </AccordionItem>
 
         {/* My voted polls */}
-
         <AccordionItem value="item-3">
           <AccordionTrigger>
-            <h2 className="text-3xl font-bold">Poll ที่คุณเคยโหวต</h2>
+            <h2 className="text-3xl font-bold">Polls you've voted on</h2>
           </AccordionTrigger>
           <AccordionContent>
             {myVotedPolls && myVotedPolls?.length === 0 ? (
               <div className="text-center py-8">
-                <h2 className="text-2xl font-bold">ไม่มี Poll ที่คุณเคยโหวต</h2>
+                <h2 className="text-2xl font-bold">No polls you've voted on</h2>
               </div>
             ) : (
               <Polls polls={myVotedPolls} />
@@ -87,7 +86,7 @@ export default function Home() {
         {/* Public Polls Section */}
         <AccordionItem value="item-2">
           <AccordionTrigger>
-            <h2 className="text-3xl font-bold">Poll สาธารณะ</h2>
+            <h2 className="text-3xl font-bold">Public Polls</h2>
           </AccordionTrigger>
           <AccordionContent>
             {isLoadingPublicPolls ? (
@@ -96,7 +95,7 @@ export default function Home() {
               </div>
             ) : publicPolls && publicPolls?.length === 0 ? (
               <div className="text-center py-8">
-                <h2 className="text-2xl font-bold">ไม่มี Poll สาธารณะ</h2>
+                <h2 className="text-2xl font-bold">No public polls</h2>
               </div>
             ) : (
               <Polls polls={publicPolls} />

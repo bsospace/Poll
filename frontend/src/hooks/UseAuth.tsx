@@ -20,13 +20,12 @@ interface AuthContextProps {
   isAuthenticated: boolean
   isLoading: boolean
   accessToken: string | null
-  loginGuest: (key: string, redirect: string) => Promise<void>
+  loginGuest: (key: string, redirect?: string) => Promise<void>
   logout: () => Promise<void>
   getProfile: () => Promise<void>
   oauthLogin: (provider: 'discord' | 'github' | 'google') => Promise<void>
 }
 
-//  สร้าง Context ให้ถูกต้อง
 export const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -35,7 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [accessToken, setAccessToken] = useState<string | null>(null)
 
-  const loginGuest = async (key: string, redirect: string) => {
+  const loginGuest = async (key: string, redirect?: string) => {
     setIsLoading(true)
     try {
       const response = await axiosInstance.post(
@@ -70,7 +69,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(true)
       setAccessToken(credentials.accessToken)
       localStorage.setItem('accessToken', credentials.accessToken)
-      window.location.href = redirect
+      
+      // Get the stored redirect path or use the provided redirect
+      const redirectPath = localStorage.getItem('redirectPath') ?? redirect ?? '/';
+      // Clear the stored redirect path
+      localStorage.removeItem('redirectPath');
+      
+      window.location.href = redirectPath;
 
     } catch (error: unknown) {
       console.error("Error:", error);
@@ -93,16 +98,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const oauthLogin = async (provider: 'discord' | 'github' | 'google') => {
     const service = 'vote'
+    
     window.location.href = `${config.apiOpenIdConnectUrl}/auth/${provider}?service=${service}&redirect=${config.appUrlCallback}`
   }
 
   const logout = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      localStorage.clear()
-      window.location.reload()
+      localStorage.clear();
+      sessionStorage.clear();
+      sessionStorage.setItem('isLogout', 'true');
+      window.location.reload();
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -142,6 +150,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isGuest: data.guest
       })
       setIsAuthenticated(true)
+      
+      // After successfully authenticating, check for saved redirect path
+      const redirectPath = localStorage.getItem('redirectPath');
+      if (redirectPath) {
+        localStorage.removeItem('redirectPath');
+        window.location.href = redirectPath;
+      }
     } finally {
       setIsLoading(false)
     }
@@ -169,7 +184,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   )
 }
 
-// ใช้ useContext ให้ถูกต้อง
 export const useAuth = (): AuthContextProps => {
   const context = useContext(AuthContext)
   if (!context) {
