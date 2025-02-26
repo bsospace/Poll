@@ -16,7 +16,6 @@ services:
       - redis
     volumes:
       - ./backend/uploads:/app/uploads"
-      - ./backend/keys:/app/keys"
 
   frontend:
     build:
