@@ -110,7 +110,10 @@ class QueueService {
                                 });
                             } else {
                                 const whitelistUser = await tx.whitelistUser.findFirst({
-                                    where: { userId },
+                                    where: {
+                                        userId: userId,
+                                        eventId: poll.eventId,
+                                    },
                                     include: { user: true },
                                 });
 
@@ -119,7 +122,7 @@ class QueueService {
                                 if (whitelistUser.point < points) throw new Error(`User ${userId} does not have enough points.`);
 
                                 await tx.whitelistUser.updateMany({
-                                    where: { userId: userId },
+                                    where: { userId: userId, eventId: poll.eventId },
                                     data: { point: { decrement: points } },
                                 });
                             }
