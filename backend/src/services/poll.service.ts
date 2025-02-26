@@ -323,7 +323,7 @@ export class PollService {
       polls: IPoll[],
       eventId: string,
       userId: string,
-      files: Express.multer.File[]
+      files: Express.Multer.File[]
     ): Promise<any> {
         try {
             return await this.prisma.$transaction(async (prisma) => {
