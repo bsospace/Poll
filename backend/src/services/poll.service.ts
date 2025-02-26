@@ -53,7 +53,7 @@ export class PollService {
      */
     public async myPolls(userId: string, isGuest: boolean, logs?: boolean): Promise<{ polls: IPoll[] }> {
         try {
-            const event = await this.prisma.event.findFirst({
+            const event = await this.prisma.event.findMany({
                 where: isGuest
                     ? { guests: { some: { id: userId, deletedAt: null } } }
                     : { whitelist: { some: { userId: userId, deletedAt: null } } },
@@ -62,8 +62,12 @@ export class PollService {
             if (!event) return { polls: [] };
 
             const rawPolls = await this.prisma.poll.findMany({
-                where: { eventId: event.id, deletedAt: null, isVoteEnd: false, publishedAt: { lte: new Date() } },
-                include: { event: true },
+                where: {
+                    deletedAt: null,
+                    publishedAt: { lte: new Date() },
+                    eventId: { in: event.map(e => e.id) },
+                },
+                include: { votes: true, event: true },
             });
 
             return { polls: this.formatPolls(rawPolls, logs) };
