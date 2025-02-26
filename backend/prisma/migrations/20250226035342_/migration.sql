@@ -36,6 +36,7 @@ CREATE TABLE "Poll" (
     "description" TEXT,
     "isPublic" BOOLEAN NOT NULL DEFAULT false,
     "canEdit" BOOLEAN NOT NULL DEFAULT false,
+    "showResult" BOOLEAN NOT NULL DEFAULT false,
     "startVoteAt" TIMESTAMP(3) NOT NULL,
     "endVoteAt" TIMESTAMP(3) NOT NULL,
     "isVoteEnd" BOOLEAN NOT NULL DEFAULT false,

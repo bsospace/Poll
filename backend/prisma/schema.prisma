@@ -49,6 +49,7 @@ model Poll {
   description  String?
   isPublic     Boolean  @default(false)
   canEdit      Boolean  @default(false)
+  showResult   Boolean  @default(false)
   startVoteAt  DateTime
   endVoteAt    DateTime
   isVoteEnd    Boolean  @default(false)

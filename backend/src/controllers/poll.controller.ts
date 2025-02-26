@@ -1,4 +1,3 @@
-import { IPoll } from "../interface";
 import { PollService } from "../services/poll.service";
 
 import { Request, Response, NextFunction } from "express";
@@ -222,9 +221,18 @@ export class PollController {
         });
       }
 
-      const userVotedResults = await this.pollService.getUserVotedResults(pollId, user.id, user.guest);
-      const pollParticipantCount = await this.pollService.getPollPaticipantCount(pollId);
-      const getRemainingPoints = await this.pollService.getRemainingPoints(pollId, user.id, user.guest);
+      const userVotedResults = await this.pollService.getUserVotedResults(
+        pollId,
+        user.id,
+        user.guest
+      );
+      const pollParticipantCount =
+        await this.pollService.getPollPaticipantCount(pollId);
+      const getRemainingPoints = await this.pollService.getRemainingPoints(
+        pollId,
+        user.id,
+        user.guest
+      );
 
       res.status(200).json({
         message: "Polls fetched successfully",
@@ -232,8 +240,8 @@ export class PollController {
           poll: polls,
           userVotedResults,
           pollParticipantCount,
-          remainingPoints: getRemainingPoints
-        }
+          remainingPoints: getRemainingPoints,
+        },
       });
     } catch (error) {
       next(error);
@@ -242,11 +250,16 @@ export class PollController {
 
   public async createPollByEventId(req: Request, res: Response): Promise<any> {
     try {
+
+      // console.log(req);
+      
       const eventId = req.params.eventId;
 
       const user = req.user;
 
-      const { polls } = req.body;
+      const { polls } = req.body.poll;
+
+      const files = req.files as Express.Multer.File[];
 
       // Check if user is authenticated
       if (!user) {
@@ -254,23 +267,41 @@ export class PollController {
           success: false,
           message: "Unauthorized",
         });
-      }      
+      }
 
-      const createdPolls = await this.pollService.createPollByEventId(polls, eventId , user.id);
+      console.log(polls);
+      
+      // console.log("EventId: ",eventId,"Polls: ", polls, "User: ", user.id,"Files: ", files);
+      
+
+      const createdPolls = {}
+      // const createdPolls = await this.pollService.createPollByEventId(
+      //   polls,
+      //   eventId,
+      //   user.id,
+      //   files
+      // );
 
       return res.status(200).json({
         success: true,
         message: "Event fetched successfully",
         data: createdPolls,
       });
-
-
     } catch (error) {
       console.error("[ERROR] getEvents:", error);
       return res.status(500).json({
         message: "Something went wrong",
         error: error || error,
       });
+    }
+  }
+
+  public async uploadFile(req: Request, res: Response): Promise<any> {
+    try {
+      const { pollName, pollDescription } = req.body;
+      const files = req.files as Express.Multer.File[];
+    } catch (error) {
+      
     }
   }
 
