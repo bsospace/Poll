@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/UseAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,7 @@ interface PollOption {
 
 export default function CreatePoll() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -28,7 +28,7 @@ export default function CreatePoll() {
     { title: "", description: "" },
   ]);
 
-  if (!user || !isAdmin) {
+  if (!user) {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold">Access Denied</h1>

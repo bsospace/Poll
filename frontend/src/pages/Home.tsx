@@ -1,64 +1,105 @@
 import { useEffect, useState } from "react";
-import { 
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import { useAuth } from "../contexts/AuthContext";
-import { axiosInstance } from "@/lib/utils";
+} from "@/components/ui/accordion";
+import { axiosInstance } from "@/lib/Utils";
 import { IPoll } from "@/interfaces/interfaces";
 import { Polls } from "@/components/Polls";
 
 export default function Home() {
-  const { user } = useAuth();
-  const [polls, setPolls] = useState<IPoll[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [myPolls, setMyPolls] = useState<IPoll[]>([]);
+  const [publicPolls, setPublicPolls] = useState<IPoll[]>([]);
+  const [myVotedPolls, setMyVotedPolls] = useState<IPoll[]>([]);
+
+  const [isLoadingMyPolls, setIsLoadingMyPolls] = useState(false);
+  const [isLoadingPublicPolls, setIsLoadingPublicPolls] = useState(false);
 
   useEffect(() => {
     fetchPolls();
-  }, [user]);
+  }, []);
 
   const fetchPolls = async () => {
-    setIsLoading(true);
+    setIsLoadingMyPolls(true);
+    setIsLoadingPublicPolls(true);
+
     try {
-      const response = await axiosInstance.get("/polls");
-      setPolls(response.data.data.polls);
+      const [myPollsRes, publicPollsRes, myVotedPolls] = await Promise.all([
+        axiosInstance.get("/polls/my-polls"),
+        axiosInstance.get("/polls/public-polls"),
+        axiosInstance.get("/polls/my-voted-polls"),
+      ]);
+
+      setMyPolls(myPollsRes.data.data.polls);
+      setPublicPolls(publicPollsRes.data.data.polls);
+      setMyVotedPolls(myVotedPolls.data.data.polls);
     } catch (error) {
       console.error("Error fetching polls:", error);
     } finally {
-      setIsLoading(false);  
+      setIsLoadingMyPolls(false);
+      setIsLoadingPublicPolls(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-      </div>
-    );
-  }
 
   return (
     <div>
       <Accordion type="multiple" defaultValue={["item-1"]}>
+        {/* My Polls Section */}
         <AccordionItem value="item-1">
           <AccordionTrigger>
-            <h1 className="text-3xl font-bold mb-8">Poll สำหรับคุณ</h1>
+            <h2 className="text-3xl font-bold">Polls for you</h2>
           </AccordionTrigger>
           <AccordionContent>
-            <Polls polls={polls} />
+            {isLoadingMyPolls ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+              </div>
+            ) : myPolls && myPolls.length === 0 ? (
+              <div className="text-center py-8">
+                <h2 className="text-2xl font-bold">No polls for you</h2>
+              </div>
+            ) : (
+              <Polls polls={myPolls} />
+            )}
           </AccordionContent>
         </AccordionItem>
-        <AccordionItem value="item-2" >
+
+        {/* My voted polls */}
+        <AccordionItem value="item-3">
           <AccordionTrigger>
-            <h1 className="text-3xl font-bold mb-8">Poll สาธารณะ</h1>
+            <h2 className="text-3xl font-bold">Polls you've voted on</h2>
           </AccordionTrigger>
           <AccordionContent>
-            <Polls polls={polls} />
+            {myVotedPolls && myVotedPolls?.length === 0 ? (
+              <div className="text-center py-8">
+                <h2 className="text-2xl font-bold">No polls you've voted on</h2>
+              </div>
+            ) : (
+              <Polls polls={myVotedPolls} />
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Public Polls Section */}
+        <AccordionItem value="item-2">
+          <AccordionTrigger>
+            <h2 className="text-3xl font-bold">Public Polls</h2>
+          </AccordionTrigger>
+          <AccordionContent>
+            {isLoadingPublicPolls ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+              </div>
+            ) : publicPolls && publicPolls?.length === 0 ? (
+              <div className="text-center py-8">
+                <h2 className="text-2xl font-bold">No public polls</h2>
+              </div>
+            ) : (
+              <Polls polls={publicPolls} />
+            )}
           </AccordionContent>
         </AccordionItem>
       </Accordion>

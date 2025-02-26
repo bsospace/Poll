@@ -1,84 +1,95 @@
 import express from "express";
-import { Request, Response } from "express-serve-static-core";
+import { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../prisma/prisma";
 import { envConfig } from "./config/config";
+import http from "http";
+import { socketService } from "./services/socket.service";
+import { QueueService } from "./services/queue.service";
+import { deleteUnusedImagesCron } from "./crons/deleteUnusedImages";
+import cron from "node-cron";
 
-// Load environment variables
+// โหลด Environment Variables
 dotenv.config();
 
-// Initialize Express
+// สร้าง Express App
 const app = express();
+const server = http.createServer(app); // ใช้ HTTP Server แทน Express ปกติ (รองรับ WebSocket)
 
-// CORS options
+// CORS Options
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: `${envConfig.nodeEnv === "production" ? envConfig.app.backendUrl : "http://localhost:5173"}`,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   exposedHeaders: ["Content-Length", "X-Response-Time"],
-  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
-  optionsSuccessStatus: 204, // Status for preflight response
+  credentials: true,
+  optionsSuccessStatus: 204,
 };
 
 // Middleware
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
-app.use(cors(corsOptions)); // Enable CORS for all routes
-app.use(helmet()); // Add security-related HTTP headers
-app.use(morgan(
-  process.env.NODE_ENV === "production" ? "combined" : "dev"
-)); // Log HTTP requests in development mode
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors(corsOptions));
+app.use(helmet());
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
-
-const prisma = new PrismaClient();
-// Connect to Prisma
+// เชื่อมต่อ Prisma
 async function startPrisma() {
   try {
     await prisma.$connect();
     console.log("[INFO] Prisma connected successfully");
   } catch (error) {
     console.error("[ERROR] Error connecting to Prisma:", error);
-    process.exit(1); // Exit process with error code if Prisma connection fails
+    process.exit(1);
   }
 }
 
-// Routes
-app.get("/", (req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    message: "Welcome to the Vote API!",
-  }); // Send a JSON response with status code 200
+
+// Home Route
+app.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({ success: true, message: "Welcome to the Vote API!" });
 });
 
-// Global error handler
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error(err);
+// Global Error Handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("[ERROR] Global Error:", err);
   res.status(500).json({
     message: "Something went wrong",
-    error: err.message || err,
+    error: err.message || "Internal Server Error",
   });
 });
 
-
-// Graceful shutdown
-const gracefulShutdown = () => {
+// Graceful Shutdown
+const gracefulShutdown = async () => {
   console.log("Shutting down gracefully...");
-  prisma.$disconnect().then(() => {
-    console.log("Prisma disconnected.");
-    process.exit(0);
-  });
+  await prisma.$disconnect();
+  console.log("Prisma disconnected.");
+  process.exit(0);
 };
 
 // Listen for termination signals
 process.on("SIGINT", gracefulShutdown);
 process.on("SIGTERM", gracefulShutdown);
 
-// Start the app
+
+cron.schedule("0 0 * * *", async () => {
+  console.log("⏳ Running scheduled task: Delete unused images...");
+  await deleteUnusedImagesCron();
+});
+
+// Start the cron job
+deleteUnusedImagesCron();
+
+console.log("✅ Cron jobs initialized.");
+
+// เริ่มต้น Prisma และ Queue Service
 startPrisma().then(() => {
-  app.listen(envConfig.appPort || 3000, () => {
+  const queueService = new QueueService(prisma);
+  socketService.initialize(server);
+  server.listen(envConfig.appPort || 3000, () => {
     console.log(`[INFO] Server running on port http://localhost:${envConfig.appPort}`);
   });
 });

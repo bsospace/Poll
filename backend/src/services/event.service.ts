@@ -9,6 +9,7 @@ export class EventService {
     public async getEvents(
         page: number = 1,
         pageSize: number = 10,
+        userId: string,
         search?: string,
         logs?: boolean
     ): Promise<{ events: IEvent[]; totalCount: number } | null> {
@@ -19,10 +20,13 @@ export class EventService {
 
             // ค้นหา Event ตามเงื่อนไขที่ระบุ และกรองเฉพาะที่ยังไม่ถูกลบ (deletedAt: null)
             const whereCondition: Prisma.EventWhereInput = {
-                deletedAt: null, // ✅ ตรวจสอบว่าข้อมูลยังไม่ถูกลบ
+                deletedAt: null,
                 ...(search && {
                     name: { contains: search, mode: Prisma.QueryMode.insensitive },
                 }),
+                OR: [
+                    { userId },
+                ],
             };
 
             // ดึง Events พร้อมกำหนด Fields ที่ต้องการ
@@ -52,13 +56,19 @@ export class EventService {
         }
     }
 
-    public async getEventById(eventId: string): Promise<Partial<IEvent> | null> {
+    public async getEventById(eventId: string, userId: string): Promise<Partial<IEvent> | null> {
         try {
             // ค้นหา Event ด้วย ID ที่ระบุ
             const event = await this.prisma.event.findFirst({
-                where: { id: eventId , deletedAt: null},
+                where: { id: eventId, deletedAt: null, userId },
                 include: {
-                    polls: true,
+                    polls: {
+                        include: { options: true },
+                    },
+                    whitelist: {
+                        include: { user: true }
+                    },
+                    guests: true,
                 },
             });
 
@@ -71,12 +81,22 @@ export class EventService {
             const formattedEvent: Partial<IEvent> = {
                 ...event,
                 description: event.description ?? undefined,
-                dataLogs: event.dataLogs ? (event.dataLogs as unknown as DataLog[]) : undefined,
                 polls: event.polls.map(poll => ({
                     ...poll,
                     description: poll.description ?? undefined,
                     banner: poll.banner ?? undefined,
-                    dataLogs: poll.dataLogs ? (poll.dataLogs as unknown as DataLog[]) : undefined,
+                    options: poll.options.map(option => ({
+                        ...option,
+                        banner: option.banner ?? undefined,
+                        description: option.description ?? undefined,
+                    })),
+                })),
+                whitelist: event.whitelist.map(w => ({
+                    ...w,
+                    user: {
+                        ...w.user,
+                        avatar: w.user.avatar ?? undefined,
+                    },
                 })),
             };
 
@@ -86,4 +106,62 @@ export class EventService {
             return null;
         }
     }
+
+    public async createEvent(userId: string, eventData: {
+        name: string;
+        description?: string;
+        whitelist?: { email: string; point: number }[];
+        guest?: { id: string; name: string; key: string; point: number }[];
+    }): Promise<IEvent | null> {
+        try {
+            const { name, description, whitelist = [], guest = [] } = eventData;
+    
+            const newEvent = await this.prisma.event.create({
+                data: {
+                    name,
+                    description,
+                    owner: { connect: { id: userId } },
+                    whitelist: {
+                        create: whitelist.map(user => ({
+                            point: user.point, // Keep the point field
+                            user: {
+                                connectOrCreate: {
+                                    where: { email: user.email }, // Check if user exists
+                                    create: { email: user.email, firstName: "", lastName: "" } // Create new user if not found
+                                }
+                            }
+                        })),
+                    },
+                    guests: {
+                        create: guest.map(g => ({
+                            name: g.name,
+                            key: g.key,
+                            point: g.point,
+                        })),
+                    },
+                },
+                include: {
+                    whitelist: {
+                        include: { user: true }, // Ensure user data is returned
+                    },
+                    guests: true,
+                },
+            });
+    
+            return {
+                ...newEvent,
+                description: newEvent.description ?? undefined,
+                whitelist: newEvent.whitelist.map(w => ({
+                    ...w,
+                    user: {
+                        ...w.user,
+                        avatar: w.user.avatar ?? undefined,
+                    },
+                })),
+            };
+        } catch (error) {
+            console.error("[ERROR] createEvent:", error);
+            return null;
+        }
+    }    
 }

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { EventService } from "../services/event.service";
+import { IPoll } from "../interface";
 
 export class EventController {
 
@@ -14,18 +15,58 @@ export class EventController {
 
         this.getEvents = this.getEvents.bind(this);
         this.getEvent = this.getEvent.bind(this);
+        this.createEvent = this.createEvent.bind(this);
     }
 
-    async createEvent(req: Request, res: Response) {
-        // Create an event
+    public async createEvent(req: Request, res: Response): Promise<any> {
+        try {
+            const { name, description, whitelist, guest } = req.body;
+            const user = req.user;
+
+            if (!user) {
+                return res.status(401).json({ success: false, message: "Unauthorized" });
+            }
+
+            const newEvent = await this.eventService.createEvent(user.id, {
+                name,
+                description,
+                whitelist,
+                guest,
+            });
+
+            if (!newEvent) {
+                return res.status(500).json({ success: false, message: "Failed to create event" });
+            }
+
+            return res.status(201).json({
+                success: true,
+                message: "Event created successfully",
+                data: newEvent,
+            });
+        } catch (error) {
+            console.error("[ERROR] createEvent:", error);
+            return res.status(500).json({ message: "Something went wrong", error });
+        }
     }
+
 
     public async getEvent(req: Request, res: Response): Promise<any> {
         try {
 
             const eventId = req.params.eventId;
 
-            const event = await this.eventService.getEventById(eventId);
+            const user = req.user;
+
+            // Check if user is authenticated
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Unauthorized",
+                });
+            }
+
+
+            const event = await this.eventService.getEventById(eventId, user.id);
 
             if (!event) {
                 return res.status(404).json({
@@ -64,7 +105,18 @@ export class EventController {
             const search = req.query.search as string;
             const logs = req.query.logs === "true";
 
-            const events = await this.eventService.getEvents(page, pageSize, search, logs);
+            const user = req.user;
+
+            // Check if user is authenticated
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Unauthorized",
+                });
+            }
+
+
+            const events = await this.eventService.getEvents(page, pageSize, user.id, search, logs);
 
             return res.status(200).json({
                 success: true,

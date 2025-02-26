@@ -35,7 +35,7 @@ class AuthMiddleware {
   }
 
   /**  Validate User เท่านั้น */
-  public async validateUserOnly(req: Request, res: Response, next: NextFunction) {
+  public async validateUserOnly(req: Request, res: Response, next: NextFunction): Promise<any>  {
     try {
       const user = await this.authenticateUser(req);
       if (!user) {
@@ -93,9 +93,10 @@ class AuthMiddleware {
       const isValidGuest = this.cryptoService.verifyAccessTokenGuest(token, envConfig.app.serviceName);
       if (!isValidGuest) return null;
 
-      let user = await cacheService.get<UserEx>(`guest:${decode.id}`);
+      let user = await cacheService.get<UserEx>(`guest:${decode.sub}`);
+
       if (!user) {
-        const userDatabase = await this.userService.getGuestUserById(decode.id);
+        const userDatabase = await this.userService.getGuestUserById(decode.sub);
         if (!userDatabase) return null;
 
         user = {
@@ -106,10 +107,9 @@ class AuthMiddleware {
           guest: true,
           email: `${userDatabase.name}@${envConfig.app.serviceName}.bsospace.com`,
           avatar: "",
-          dataLogs: Array.isArray(userDatabase.dataLogs) ? (userDatabase.dataLogs as unknown as DataLog[]) : [],
         };
 
-        await cacheService.set(`guest:${decode.id}`, user, 600);
+        await cacheService.set(`guest:${decode.sub}`, user, 600);
       }
 
       return { ...user, guest: true };
@@ -175,7 +175,6 @@ class AuthMiddleware {
         user = {
           ...userDatabase,
           avatar: userDatabase.avatar || "",
-          dataLogs: Array.isArray(userDatabase.dataLogs) ? (userDatabase.dataLogs as unknown as DataLog[]) : [],
         };
 
         await cacheService.set(`users:${jwtPayload.email}`, user, 600);
@@ -193,6 +192,7 @@ class AuthMiddleware {
   /**  Extract Token */
   private extractToken(req: Request): string | null {
     const authHeader = req.headers?.authorization;
+    
     return authHeader?.startsWith("Bearer ")
       ? authHeader.split(" ")[1]
       : req.cookies?.accessToken || null;

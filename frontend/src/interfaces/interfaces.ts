@@ -1,142 +1,126 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface IUser {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    avatar?: string;
-    events?: IEvent[];
-    polls?: IPoll[];
-    whitelist?: IWhitelistUser[];
-    votes?: IVote[];
-    userVotes?: IVoteRestriction[];
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface IEvent {
-    id: string;
-    name: string;
-    description?: string;
-    userId: string;
-    owner?: IUser;
-    polls?: IPoll[];
-    whitelist?: IWhitelistUser[];
-    guests?: IGuest[];
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface IPoll {
-    id: string;
-    eventId?: string | null;
-    event?: IEvent;
-    userId: string;
-    owner?: IUser;
-    question: string;
-    description?: string;
-    isPublic: boolean;
-    startVoteAt: Date;
-    endVoteAt: Date;
-    isVoteEnd: boolean;
-    banner?: string;
-    publishedAt?: Date | null;
-    options?: IOption[];
-    whitelist?: IWhitelistUser[];
-    votes?: IVote[];
-    guestVotes?: IGuest[];
-    voteRestrict?: IVoteRestriction[];
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface IOption {
-    id: string;
-    text: string;
-    banner?: string;
-    description?: string;
-    pollId: string;
-    poll?: IPoll;
-    votes?: IVote[];
-    voteRestrict?: IVoteRestriction[];
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface IWhitelistUser {
-    id: string;
-    userId: string;
-    user?: IUser;
-    eventId?: string | null;
-    event?: IEvent;
-    pollId?: string | null;
-    poll?: IPoll;
-    point: number;
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface IGuest {
-    id: string;
-    name: string;
-    key: string;
-    eventId?: string | null;
-    event?: IEvent;
-    pollId?: string | null;
-    poll?: IPoll;
-    votes?: IVote[];
-    guestVotes?: IVoteRestriction[];
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface IVoteRestriction {
-    id: string;
-    userId?: string | null;
-    user?: IUser;
-    guestId?: string | null;
-    guest?: IGuest;
-    pollId: string;
-    poll?: IPoll;
-    optionId: string;
-    option?: IOption;
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface IVote {
-    id: string;
-    pollId: string;
-    poll?: IPoll;
-    optionId: string;
-    option?: IOption;
-    userId?: string | null;
-    user?: IUser;
-    guestId?: string | null;
-    guest?: IGuest;
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date | null;
-    dataLogs?: DataLog[];
-  }
-  
-  export interface DataLog {
-    action: string;
-    createdAt: Date;
-    updatedAt: Date;
-    createdBy: string;
-    meta: string[];
-  }
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  dataLogs?: any;
+}
+
+export interface IEvent {
+  data: any;
+  id: string;
+  name: string;
+  description?: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  dataLogs?: any;
+  polls?: IPoll[];
+  whitelist?: IWhitelistUser[];
+  guests?: IGuest[];
+}
+
+export interface IPoll {
+  poll: any;
+  id: string;
+  eventId?: string;
+  userId: string;
+  question: string;
+  description?: string;
+  options: IOption[];
+  isPublic: boolean;
+  canEdit: boolean;
+  startVoteAt: Date;
+  endVoteAt: Date;
+  isVoteEnd: boolean;
+  banner?: string;
+  publishedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  event: IEvent;
+  showResult: boolean;
+  dataLogs?: any;
+}
+
+export interface IOption {
+  id: string;
+  text: string;
+  banner?: string;
+  description?: string;
+  pollId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  votes: IVote[];
+  dataLogs?: any;
+  restricts?: string;
+  userProfile?: string;
+  points?: number;
+}
+
+export interface IWhitelistUser {
+  email: string;
+  id: string;
+  userId: string;
+  eventId?: string;
+  point: number;
+  event: IEvent;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  dataLogs?: any;
+  user: IUser;
+}
+
+export interface IGuest {
+  id: string;
+  name: string;
+  key: string;
+  point: number;
+  eventId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  dataLogs?: any;
+}
+
+export interface IVoteRestriction {
+  id: string;
+  userId?: string;
+  guestId?: string;
+  pollId: string;
+  optionId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  dataLogs?: any;
+}
+
+export interface IVote {
+  id: string;
+  pollId: string;
+  optionId: string;
+  userId?: string;
+  guestId?: string;
+  point: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+  dataLogs?: any;
+}
+
+export interface IFailedJob {
+  id: string;
+  jobId: string;
+  queueName: string;
+  data: any;
+  error: string;
+  createdAt: Date;
+}

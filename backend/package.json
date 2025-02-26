@@ -4,23 +4,32 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/src/index.js"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.750.0",
     "@types/bcrypt": "^5.0.2",
     "bcrypt": "^5.1.1",
+    "bullmq": "^5.41.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-async-handler": "^1.2.0",
     "express-validator": "^7.2.1",
+    "fs": "^0.0.1-security",
     "helmet": "^8.0.0",
+    "ioredis": "^5.5.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
     "redis": "^4.7.0",
+    "socket.io": "^4.8.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -30,7 +39,9 @@
     "@types/helmet": "^0.0.48",
     "@types/jsonwebtoken": "^9.0.8",
     "@types/morgan": "^1.9.9",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.13.2",
+    "@types/node-cron": "^3.0.11",
     "@types/redis": "^4.0.10",
     "prisma": "^6.3.1",
     "ts-node": "^10.9.2",
