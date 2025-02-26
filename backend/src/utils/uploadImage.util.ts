@@ -5,7 +5,7 @@ import fs from 'fs';
 
 export interface UploadResult {
     url: string;
-    filename: string;
+    fileName: string;
 }
 
 const R2_ENDPOINT = `https://${envConfig.cloudflareR2AccountId}.r2.cloudflarestorage.com`;
@@ -40,14 +40,14 @@ export const uploadToCloudflare = async (
         ContentType: getMimeType(originalName),
       });
   
-      await s3Client.send(command);
+      // await s3Client.send(command);
   
       // ลบไฟล์จาก Local หลังอัปโหลดสำเร็จ
       fs.unlinkSync(filePath);
   
       return {
         url: `${R2_ENDPOINT}/${envConfig.cloudflareR2BucketName}/${uniqueFileName}`,
-        filename: uniqueFileName,
+        fileName: uniqueFileName,
       };
     } catch (error) {
       console.error('Error uploading to Cloudflare:', error);
