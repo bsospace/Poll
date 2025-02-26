@@ -10,14 +10,16 @@ import { CryptoService } from "../services/crypto.service";
 import AuthMiddleware from "../middlewares/auth.middleware";
 import { QueueService } from "../services/queue.service";
 import { VoteController } from "../controllers/vote.controller";
+import { R2Service } from '../services/r2.services';
 
 const router = Router();
 
 
 const prisma = new PrismaClient();
-const pollService = new PollService(prisma);
+const r2Service = new R2Service(prisma);
+const pollService = new PollService(prisma, r2Service);
 
-const pollController = new PollController(pollService);
+const pollController = new PollController(pollService, r2Service);
 
 const userService = new UserService(
     prisma
