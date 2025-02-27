@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../../hooks/UseAuth";
 import { axiosInstance } from "@/lib/Utils";
@@ -12,7 +12,6 @@ import { ArrowLeft } from "lucide-react";
 
 const PollDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); // ใช้สำหรับย้อนกลับ
   const { user } = useAuth();
   const [poll, setPoll] = useState<IPoll | null>(null);
   const [searchParams] = useSearchParams();
@@ -36,7 +35,7 @@ const PollDetails = () => {
 
   useEffect(() => {
     fetchPollData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchPollData = async () => {
@@ -44,12 +43,12 @@ const PollDetails = () => {
       setIsLoading(true);
       const response = await axiosInstance.get(`/polls/${id}`);
       const pollData = response.data.data.poll;
-      
+
       setPoll(pollData);
       setUserVotedResults(response.data.data.userVotedResults);
       setPollParticipantCount(response.data.data.pollParticipantCount);
       setUserPoint(response.data.data.remainingPoints);
-      
+
       const voteCounts: Record<string, number> = {};
       let total = 0;
 
@@ -64,7 +63,7 @@ const PollDetails = () => {
 
       setTotalVotes(total);
       setOptionVoteCounts(voteCounts);
-      
+
       setUserHasVoted(
         response.data.data.userVotedResults.some(
           (result: { userId: string }) => result.userId === user?.id
@@ -73,7 +72,7 @@ const PollDetails = () => {
 
 
       console.log("has voted", userHasVoted);
-      
+
     } catch (error) {
       toast.error("Failed to load poll data");
       console.error(error);
@@ -105,7 +104,7 @@ const PollDetails = () => {
       setUserPoint((prev) => prev - votingPoint);
 
       // Decrease user point
-      
+
       setUserPoint((prev) => prev - votingPoint);
 
       fetchPollData();
@@ -149,13 +148,10 @@ const PollDetails = () => {
   return (
     <div className="max-w-4xl mx-auto md:py-8 md:px-4">
       {/* ปุ่มกลับ */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 px-4 py-2 mb-4 text-sm font-medium text-gray-700 transition bg-gray-100 rounded-lg hover:bg-gray-200"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        กลับ
-      </button>
+      <Link to="/" className="flex items-center text-gray-600 transition-colors hover:text-orange-500">
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        <span>Back to Home</span>
+      </Link>
 
       {/* Poll Info */}
       <PollInfo poll={poll} pollParticipantCount={pollParticipantCount} userPoint={userPoint} />
