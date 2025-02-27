@@ -235,7 +235,7 @@ export class PollController {
         user.guest
       );
       const pollParticipantCount =
-        await this.pollService.getPollPaticipantCount(pollId);
+        await this.pollService.getPollPaticipantVotedCount(pollId);
       const getRemainingPoints = await this.pollService.getRemainingPoints(
         pollId,
         user.id,
