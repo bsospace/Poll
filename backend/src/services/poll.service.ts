@@ -248,17 +248,13 @@ export class PollService {
         }
     }
 
-    public async getPollPaticipantCount(pollId: string) {
+    public async getPollPaticipantVotedCount(pollId: string) {
         try {
+            
             const poll = await this.prisma.poll.findFirst({
                 where: { id: pollId, deletedAt: null },
                 include: {
-                    event: {
-                        include: {
-                            guests: true,
-                            whitelist: true,
-                        },
-                    },
+                    votes: true,
                 },
             });
 
@@ -267,11 +263,8 @@ export class PollService {
                 return null;
             }
 
-            const guests = poll.event?.guests ?? [];
-            const whitelist = poll.event?.whitelist ?? [];
-
-            return guests.length + whitelist.length;
-
+            return poll.votes.length;
+            
         } catch (error) {
             console.error("[ERROR] getPollVotedCount:", error);
             throw new Error("Failed to fetch poll");
