@@ -1,10 +1,15 @@
+-- CreateEnum
+CREATE TYPE "UserType" AS ENUM ('NORMAL', 'GUEST');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "firstName" TEXT,
+    "lastName" TEXT,
+    "email" TEXT,
     "avatar" TEXT,
+    "type" "UserType" NOT NULL DEFAULT 'NORMAL',
+    "key" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -25,6 +30,20 @@ CREATE TABLE "Event" (
     "dataLogs" JSONB,
 
     CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PollUserPoint" (
+    "id" TEXT NOT NULL,
+    "pollId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "point" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+    "dataLogs" JSONB,
+
+    CONSTRAINT "PollUserPoint_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -70,7 +89,6 @@ CREATE TABLE "WhitelistUser" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "eventId" TEXT,
-    "point" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -80,25 +98,9 @@ CREATE TABLE "WhitelistUser" (
 );
 
 -- CreateTable
-CREATE TABLE "Guest" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "key" TEXT NOT NULL,
-    "point" INTEGER NOT NULL DEFAULT 0,
-    "eventId" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "deletedAt" TIMESTAMP(3),
-    "dataLogs" JSONB,
-
-    CONSTRAINT "Guest_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "VoteRestriction" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
-    "guestId" TEXT,
     "pollId" TEXT NOT NULL,
     "optionId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -116,7 +118,6 @@ CREATE TABLE "Vote" (
     "point" INTEGER NOT NULL DEFAULT 0,
     "optionId" TEXT NOT NULL,
     "userId" TEXT,
-    "guestId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -161,6 +162,9 @@ CREATE TABLE "Image" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PollUserPoint_pollId_userId_key" ON "PollUserPoint"("pollId", "userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "WhitelistUser_userId_eventId_key" ON "WhitelistUser"("userId", "eventId");
 
 -- CreateIndex
@@ -179,6 +183,12 @@ CREATE UNIQUE INDEX "Image_relatedTo_relatedId_key_key" ON "Image"("relatedTo", 
 ALTER TABLE "Event" ADD CONSTRAINT "Event_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PollUserPoint" ADD CONSTRAINT "PollUserPoint_pollId_fkey" FOREIGN KEY ("pollId") REFERENCES "Poll"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PollUserPoint" ADD CONSTRAINT "PollUserPoint_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Poll" ADD CONSTRAINT "Poll_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -194,13 +204,7 @@ ALTER TABLE "WhitelistUser" ADD CONSTRAINT "WhitelistUser_userId_fkey" FOREIGN K
 ALTER TABLE "WhitelistUser" ADD CONSTRAINT "WhitelistUser_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Guest" ADD CONSTRAINT "Guest_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "VoteRestriction" ADD CONSTRAINT "VoteRestriction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "VoteRestriction" ADD CONSTRAINT "VoteRestriction_guestId_fkey" FOREIGN KEY ("guestId") REFERENCES "Guest"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "VoteRestriction" ADD CONSTRAINT "VoteRestriction_pollId_fkey" FOREIGN KEY ("pollId") REFERENCES "Poll"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -216,9 +220,6 @@ ALTER TABLE "Vote" ADD CONSTRAINT "Vote_optionId_fkey" FOREIGN KEY ("optionId") 
 
 -- AddForeignKey
 ALTER TABLE "Vote" ADD CONSTRAINT "Vote_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Vote" ADD CONSTRAINT "Vote_guestId_fkey" FOREIGN KEY ("guestId") REFERENCES "Guest"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Image" ADD CONSTRAINT "Image_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

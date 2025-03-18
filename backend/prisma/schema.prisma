@@ -7,12 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserType {
+  NORMAL
+  GUEST
+}
+
 model User {
   id        String            @id @default(uuid())
-  firstName String
-  lastName  String
-  email     String            @unique
+  firstName String?
+  lastName  String?
+  email     String?           @unique
   avatar    String?
+  type      UserType          @default(NORMAL)
+  key       String?           // ใช้สำหรับ Guest
   events    Event[]           @relation("EventOwner")
   polls     Poll[]            @relation("PollOwner")
   whitelist WhitelistUser[]
@@ -20,6 +27,7 @@ model User {
   userVotes VoteRestriction[]
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+  PollUserPoint PollUserPoint[]
   deletedAt DateTime?
   Image     Image[]
   dataLogs  Json?
@@ -33,11 +41,25 @@ model Event {
   owner       User            @relation("EventOwner", fields: [userId], references: [id], onDelete: Cascade)
   polls       Poll[]
   whitelist   WhitelistUser[]
-  guests      Guest[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   deletedAt   DateTime?
   dataLogs    Json?
+}
+
+model PollUserPoint {
+  id        String   @id @default(uuid())
+  pollId    String
+  poll      Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  point     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  dataLogs  Json?
+
+  @@unique([pollId, userId])
 }
 
 model Poll {
@@ -59,6 +81,7 @@ model Poll {
   options      Option[]
   votes        Vote[]
   voteRestrict VoteRestriction[]
+  PollUserPoint PollUserPoint[]
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   deletedAt    DateTime?
@@ -86,7 +109,6 @@ model WhitelistUser {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   eventId   String?
   event     Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  point     Int       @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
@@ -95,27 +117,10 @@ model WhitelistUser {
   @@unique([userId, eventId])
 }
 
-model Guest {
-  id         String            @id @default(uuid())
-  name       String
-  key        String
-  point      Int               @default(0)
-  eventId    String?
-  event      Event?            @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  votes      Vote[]
-  guestVotes VoteRestriction[]
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  deletedAt  DateTime?
-  dataLogs   Json?
-}
-
 model VoteRestriction {
   id        String    @id @default(uuid())
   userId    String?
   user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guestId   String?
-  guest     Guest?    @relation(fields: [guestId], references: [id], onDelete: Cascade)
   pollId    String
   poll      Poll      @relation(fields: [pollId], references: [id], onDelete: Cascade)
   optionId  String
@@ -135,8 +140,6 @@ model Vote {
   option    Option    @relation(fields: [optionId], references: [id], onDelete: Cascade)
   userId    String?
   user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guestId   String?
-  guest     Guest?    @relation(fields: [guestId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
