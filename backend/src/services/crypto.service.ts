@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { User } from '@prisma/client';
+import { User, UserType } from '@prisma/client';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { envConfig } from '../config/config';
@@ -52,10 +52,6 @@ export class CryptoService {
      */
     private readKey(service: string, type: 'Access' | 'Refresh', keyType: 'Private' | 'Public'): Buffer {
         const keyPath = this.getKeyPath(service, type, keyType);
-        console.log("keyPath", keyPath);
-        console.log("keyType", keyType);
-        console.log("type", type);
-        console.log("service", service);
         try {
             return readFileSync(keyPath);
         } catch (error) {
@@ -76,7 +72,7 @@ export class CryptoService {
                 iss: envConfig.app.backendUrl,
                 iat: Math.floor(Date.now() / 1000),
                 service: service,
-                guest: guest
+                type: UserType.GUEST
             },
             envConfig.seScret,
             { algorithm: 'HS256', expiresIn: '1h' }
