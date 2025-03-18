@@ -5,114 +5,84 @@ import { UserService } from "../services/user.service";
 import { CryptoService } from "../services/crypto.service";
 import { envConfig } from "../config/config";
 import { AuthService } from "../services/auth.service";
-import { DataLog, IUser } from "../interface";
+import { User, UserType } from "@prisma/client";
 
-// Extend the Express Request type to include a user property
-export interface UserEx extends IUser {
-  guest: boolean;
-}
-
+// Extend Express Request Type
 declare global {
   namespace Express {
     interface Request {
-      user?: UserEx;
+      user?: User;
     }
   }
 }
 
 class AuthMiddleware {
-  private userService: UserService;
-  private cryptoService: CryptoService;
-  private authService: AuthService;
+  constructor(
+    private userService: UserService,
+    private cryptoService: CryptoService,
+    private authService: AuthService
+  ) {}
 
-  constructor(userService: UserService, cryptoService: CryptoService, authService: AuthService) {
-    this.userService = userService;
-    this.cryptoService = cryptoService;
-    this.authService = authService;
-
-    this.validateUserOnly = this.validateUserOnly.bind(this);
-    this.validateMulti = this.validateMulti.bind(this);
-  }
-
-  /**  Validate User เท่านั้น */
-  public async validateUserOnly(req: Request, res: Response, next: NextFunction): Promise<any>  {
+  /**  Validate สำหรับ User เท่านั้น */
+  public validateUserOnly = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-      const user = await this.authenticateUser(req);
+      const user = await this.authenticate(req, UserType.NORMAL);
       if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "Authorization failed!",
-          error: "User authentication required",
-        });
+        return this.unauthorizedResponse(res, "User authentication required");
       }
-
-      req.user = { ...user, guest: false };
-      next();
-    } catch (error) {
-      console.error("[ERROR] validateUserOnly:", error);
-      res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-  }
-
-  /**  Validate Multi (User + Guest) */
-  public async validateMulti(req: Request, res: Response, next: NextFunction): Promise<any> {
-    try {
-      let user = await this.authenticateGuest(req);
-      if (!user) {
-        user = await this.authenticateUser(req);
-        if (!user) {
-          return res.status(401).json({
-            success: false,
-            message: "Authorization failed!",
-            error: "User or Guest authentication required",
-          });
-        }
-      }
-
       req.user = user;
       next();
     } catch (error) {
-      console.error("[ERROR] validateMulti:", error);
-      res.status(500).json({ success: false, message: "Internal Server Error" });
+      this.internalServerError(res, error, "validateUserOnly");
     }
-  }
+  };
 
-  /**  Authenticate Guest */
-  private async authenticateGuest(req: Request): Promise<UserEx | null> {
+  /**  Validate ได้ทั้ง User และ Guest */
+  public validateMulti = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+      const user = await this.authenticate(req, UserType.GUEST) || await this.authenticate(req, UserType.NORMAL);
+      if (!user) {
+        return this.unauthorizedResponse(res, "User or Guest authentication required");
+      }
+      req.user = user;
+      next();
+    } catch (error) {
+      this.internalServerError(res, error, "validateMulti");
+    }
+  };
+
+  /**  ฟังก์ชัน Authenticate สำหรับ User และ Guest */
+  private async authenticate(req: Request, type: UserType): Promise<User | null> {
     try {
       const token = this.extractToken(req);
       if (!token) return null;
 
       const decode = this.cryptoService.decodeToken(token);
-      if (!decode || !decode.guest) return null;
-
-      if (decode.service !== envConfig.app.serviceName) {
+      if (!decode || decode.service !== envConfig.app.serviceName) {
         return null;
-      };
+      }
+      
+      return type === UserType.GUEST ? this.authenticateGuest(decode.sub, token) : this.authenticateUser(token);
+    } catch (error) {
+      console.error("[ERROR] authenticate:", error);
+      return null;
+    }
+  }
 
-      const isValidGuest = this.cryptoService.verifyAccessTokenGuest(token, envConfig.app.serviceName);
-      if (!isValidGuest) return null;
+  /**  Authenticate Guest */
+  private async authenticateGuest(guestId: string, token: string): Promise<User | null> {
+    try {
+      if (!this.cryptoService.verifyAccessTokenGuest(token, envConfig.app.serviceName)) return null;
 
-      let user = await cacheService.get<UserEx>(`guest:${decode.sub}`);
-
+      let user = await cacheService.get<User>(`guest:${guestId}`);
       if (!user) {
-        const userDatabase = await this.userService.getGuestUserById(decode.sub);
-        if (!userDatabase) return null;
+        user = await this.userService.getUserById(guestId);
+        if (!user) return null;
 
-        user = {
-          ...userDatabase,
-          firstName: userDatabase.name,
-          lastName: userDatabase.name,
-          id: userDatabase.id,
-          guest: true,
-          email: `${userDatabase.name}@${envConfig.app.serviceName}.bsospace.com`,
-          avatar: "",
-        };
-
-        await cacheService.set(`guest:${decode.sub}`, user, 600);
+        await cacheService.set(`guest:${guestId}`, user, 600);
       }
 
-      return { ...user, guest: true };
+      return user;
     } catch (error) {
       console.error("[ERROR] authenticateGuest:", error);
       return null;
@@ -120,93 +90,70 @@ class AuthMiddleware {
   }
 
   /**  Authenticate User */
-  private async authenticateUser(req: Request): Promise<UserEx | null> {
+  private async authenticateUser(token: string): Promise<User | null> {
     try {
-      const token = this.extractToken(req);
+      const jwtPayload = this.cryptoService.verifyAccessTokenOpenId(token, envConfig.app.serviceName);
+      if (!jwtPayload || !jwtPayload.email) return null;
 
-      console.log("token", token);
-      if (!token) return null;
-
-      const decode = this.cryptoService.decodeToken(token);
-
-      console.log("decode", decode);
-      if (!decode || decode.guest) return null;
-
-      if (decode.service !== envConfig.app.serviceName) {
-        return null;
-      };
-
-      console.log("decode.service", decode.service);
-      console.log("envConfig.app.serviceName", envConfig.app.serviceName);
-
-      // Verify the access token
-      const jwtPayload: JwtPayload | null = this.cryptoService.verifyAccessTokenOpenId(
-        token,
-        decode.service
-      );
-
-      console.log("jwtPayload", jwtPayload);
-
-      if (!jwtPayload || !jwtPayload.email || !jwtPayload.sub) return null;
-
-      let user = await cacheService.get<IUser>(`users:${jwtPayload.email}`);
-
-      console.log("user", user);
-      
-      const userProlife = await this.authService.profile(token);
-
+      let user = await cacheService.get<User>(`users:${jwtPayload.email}`);
       if (!user) {
-        let userDatabase = await this.userService.getUserByEmail(jwtPayload.email);
-
-        if (!userDatabase) {
-          console.log("[INFO] Creating new user...");
-
-          userDatabase = await this.userService.createUser({
-            email: userProlife.data?.email || "",
-            firstName: userProlife.data?.firstName || "",
-            lastName: jwtPayload.lastName || "",
-            avatar: userProlife.data?.image || "",
-            dataLogs: [
-              {
-                action: "User Created",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                createdBy: "system",
-                meta: [],
-              },
-            ],
-          });
-
-          if (!userDatabase) {
-            console.error("[ERROR] Failed to create user!");
-            return null;
-          }
-        }
-
-        user = {
-          ...userDatabase,
-          avatar: userDatabase.avatar || "",
-        };
+        user = await this.userService.getUserByEmail(jwtPayload.email) || await this.createNewUser(token);
+        if (!user) return null;
 
         await cacheService.set(`users:${jwtPayload.email}`, user, 600);
       }
 
-      const formattedUser: UserEx = { ...user, guest: false };
-
-      return formattedUser;
+      return user;
     } catch (error) {
       console.error("[ERROR] authenticateUser:", error);
       return null;
     }
   }
 
-  /**  Extract Token */
+  /**  สร้าง User ใหม่ ถ้ายังไม่มีในระบบ */
+  private async createNewUser(token: string): Promise<User | null> {
+    try {
+      console.log("[INFO] Creating new user...");
+      const userProfile = await this.authService.profile(token);
+      if (!userProfile.success || !userProfile.data) {
+        console.error("[ERROR] Invalid user profile");
+        return null;
+      }
+
+      const user: Partial<User> = {
+        email: userProfile.data.email,
+        avatar: userProfile.data.image,
+        firstName: userProfile.data.username,
+        lastName: userProfile.data.username,
+        type: UserType.NORMAL,
+        key: undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      return await this.userService.createUser(user);
+    } catch (error) {
+      console.error("[ERROR] createNewUser:", error);
+      return null;
+    }
+  }
+
+  /**  Extract Token จาก Header หรือ Cookies */
   private extractToken(req: Request): string | null {
-    const authHeader = req.headers?.authorization;
-    
-    return authHeader?.startsWith("Bearer ")
-      ? authHeader.split(" ")[1]
+    return req.headers.authorization?.startsWith("Bearer ") 
+      ? req.headers.authorization.split(" ")[1] 
       : req.cookies?.accessToken || null;
+  }
+
+  /**  Unauthorized Response */
+  private unauthorizedResponse(res: Response, message: string): Response {
+    return res.status(401).json({ success: false, message: "Authorization failed!", error: message });
+  }
+
+  /**  Internal Server Error Handler */
+  private internalServerError(res: Response, error: any, methodName: string): Response {
+    console.error(`[ERROR] ${methodName}:`, error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 }
 
